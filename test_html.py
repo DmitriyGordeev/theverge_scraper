@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 class TestIndex(unittest.TestCase):
 
     def test_index_html(self):
-        url = "https://www.theverge.com/"
+        url = "https://www.theverge.com/tech/"
 
         HEADERS = ({'User-Agent':
                         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 \
@@ -17,22 +17,16 @@ class TestIndex(unittest.TestCase):
 
         html_text = requests.get(url, headers=HEADERS).text
         html_text = html_text.replace(">", ">\n")
-        with open(f"index.html", "w") as f:
+        with open(f"tech.html", "w") as f:
             f.write(html_text)
 
-        text = BeautifulSoup(html_text).get_text()
-        with open("index.txt", "w") as f:
-            f.write(text)
+        # text = BeautifulSoup(html_text).get_text()
+        # with open("tech.txt", "w") as f:
+        #     f.write(text)
 
 
-    def test_selectors(self):
-        with open("notes", "r") as f:
-            content = f.read()
-            soup = BeautifulSoup(content)
-            global_header_links = soup.select("nav ul li")
-            pass
 
-    def test_selectors(self):
+    def test_main_menu_header(self):
         with open("index.html", "r") as f:
             content = f.read()
             soup = BeautifulSoup(content)
@@ -45,17 +39,26 @@ class TestIndex(unittest.TestCase):
 
             assert len(r) > 0
 
-            li_dict = dict()
+            folder2href = dict()
             active_folder = ""
             for li in r:
                 folder = li.get("data-nav-item-id")
                 if folder is not None:
                     active_folder = folder
-                    li_dict[active_folder] = []
+                    folder2href[active_folder] = []
                 else:
                     href = li.select("a")[0].get("href")
-                    li_dict[active_folder].append(href)
+                    folder2href[active_folder].append(href)
+
+
+    def test_folder_link(self):
+        with open("tech.html", "r") as f:
+            content = f.read()
+            soup = BeautifulSoup(content)
+            r = soup.select("div.l-segment.l-main-content "
+                            "div.c-compact-river__entry "
+                            "a.c-entry-box--compact__image-wrapper")
+            links = []
+            for a in r:
+                links.append(a.get("href"))
             pass
-
-
-
