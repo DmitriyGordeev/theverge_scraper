@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 class ArticleResult:
     def __init__(self):
         self.url = ""
+        self.tags = []
         self.header = ""
         self.summary = ""
         self.byline = ""
@@ -80,6 +81,12 @@ class Parser:
         if len(times) > 0:
             time = times[0].get("datetime")
 
+        # parsing tags:
+        tags = soup.select("div.c-entry-group-labels "
+                            "li.c-entry-group-labels__item "
+                            "span")
+        tags = [x.text.replace("\n", "") for x in tags]
+
         # article's content - select all p and h2 where the main text resides
         entry_content = soup.select("div.c-entry-content")
         main_text_tags = entry_content[0].select("h2, p[id]")
@@ -93,6 +100,7 @@ class Parser:
         refs = entry_content[0].select("a")
 
         article = ArticleResult()
+        article.tags = tags
         article.header = header_text
         article.summary = summary_text
         article.time = time

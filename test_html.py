@@ -10,7 +10,7 @@ from html_parser import Parser
 class TestIndex(unittest.TestCase):
 
     def test_index_html(self):
-        url = "https://www.theverge.com/archives/2022/6/"
+        url = "https://www.theverge.com/2022/6/16/23168987/eu-code-disinformation-online-propaganda-facebook-twitter-tiktok"
 
         HEADERS = ({'User-Agent':
                         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 \
@@ -19,11 +19,15 @@ class TestIndex(unittest.TestCase):
 
         html_text = requests.get(url, headers=HEADERS).text
         html_text = html_text.replace(">", ">\n")
-        with open(f"archives.html", "w") as f:
+        with open(f"test_html_pages/article.html", "w") as f:
             f.write(html_text)
 
         soup = BeautifulSoup(html_text)
-        soup.select("div.c-archives-load-more button.p-button")
+        span_tags = soup.select("div.c-entry-group-labels "
+                                "li.c-entry-group-labels__item "
+                                "span")
+        span_tags = [x.text.replace("\n", "") for x in span_tags]
+        pass
 
 
     def test_main_menu_header_links(self):
@@ -78,7 +82,7 @@ class TestIndex(unittest.TestCase):
 
 
     def test_parse_article(self):
-        with open("article.html", "r") as f:
+        with open("test_html_pages/article.html", "r") as f:
             content = f.read()
             # soup = BeautifulSoup(content)
             # header_wrap = soup.select("article.l-main-content "
