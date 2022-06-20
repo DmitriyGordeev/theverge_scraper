@@ -1,3 +1,4 @@
+import os
 import re
 import unittest
 import requests
@@ -7,6 +8,7 @@ from urllib.parse import urlparse
 from html_parser import Parser
 from selenium import webdriver
 from time import sleep
+from pathlib import Path
 
 
 class Scraper:
@@ -42,10 +44,15 @@ class Scraper:
             exit(0)
 
         # loop through all main menu links and scrape all articles
-        # TODO: test single folder
-        folder = list(self.main_menu_folder2hrefs.keys())[0]
-        self.loop_through_folder_news(f"/{folder}/archives", folder)
+        # folder = list(self.main_menu_folder2hrefs.keys())[0]
+        # self.loop_through_folder_news(f"/{folder}/archives", folder)
+        for folder in self.main_menu_folder2hrefs.keys():
+            print (f"SCRAPING FOLDER = {folder}")
+            self.loop_through_folder_news(f"/{folder}/archives", folder)
+            break   # TODO: remove, this is only for test
 
+        # Loop through article urls in each folder:
+        self.loop_through_gathered_articles()
 
 
     def find_main_menu_links(self):
@@ -93,6 +100,35 @@ class Scraper:
 
             target_page = hrefs[0].get("href")
         f.close()
+
+
+    def loop_through_gathered_articles(self):
+        if not self.folder2articles:
+            print ("self.folder2articles is empty")
+            # TODO: log this
+            exit(1)
+
+        for folder, articles in self.folder2articles.items():
+            if len(articles) == 0:
+                print (f"folder {folder} doesn't contain articles")
+                # todo: log this
+                continue
+
+            Path(f"{folder}").mkdir(parents=True, exist_ok=True)
+
+            for i, url in enumerate(articles):
+                print (f"parsing articles: {i}/{len(articles)}")
+
+                headers = self.emulate_headers()
+                html_text = requests.get(url, headers=headers).text
+                html_text = html_text.replace(">", ">\n")
+
+                # TODO: check if already in the database or not
+                article_result_object = Parser.parse_article_page(html_text)
+                article_result_object.url = url
+                with open(folder + f"/{i}.txt", "w") as f:
+                    f.write(article_result_object.formatted_text())
+
 
 
     @staticmethod

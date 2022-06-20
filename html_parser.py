@@ -16,6 +16,18 @@ class ArticleResult:
         self.time = ""
         self.main_text = ""
         self.inner_links = []
+        self.parsing_error = ""
+
+    def formatted_text(self):
+        output = ""
+        output += f"url: {self.url}\n\n"
+        output += f"{self.header}\n\n"
+        output += f"{self.summary}\n\n"
+        output += f"{self.tags}\n\n"
+        output += f"{self.byline}\n\n"
+        output += f"{self.main_text}"
+        return output
+
 
 
 class Parser:
@@ -67,8 +79,13 @@ class Parser:
         header_wrap = soup.select("article.l-main-content "
                                   "div.c-entry-hero__header-wrap")
 
+        # if len(header_wrap) == 0:
+        #     raise RuntimeError("no item found")
+
+        article = ArticleResult()
         if len(header_wrap) == 0:
-            raise RuntimeError("no item found")
+            article.parsing_error = "element {article.l-main-content div.c-entry-hero__header-wrap} was not found"
+            return article
 
         header_text = header_wrap[0].select("h1")[0].text
         summary_text = soup.select("article.l-main-content p.c-entry-summary")[0].text
@@ -99,7 +116,6 @@ class Parser:
         # References inside the article:
         refs = entry_content[0].select("a")
 
-        article = ArticleResult()
         article.tags = tags
         article.header = header_text
         article.summary = summary_text
