@@ -10,7 +10,7 @@ from html_parser import Parser
 class TestIndex(unittest.TestCase):
 
     def test_index_html(self):
-        url = "https://www.theverge.com/21546591/best-amazon-echo-deals"
+        url = "https://www.theverge.com/archives/2022/6/"
 
         HEADERS = ({'User-Agent':
                         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 \
@@ -19,12 +19,11 @@ class TestIndex(unittest.TestCase):
 
         html_text = requests.get(url, headers=HEADERS).text
         html_text = html_text.replace(">", ">\n")
-        with open(f"article.html", "w") as f:
+        with open(f"archives.html", "w") as f:
             f.write(html_text)
 
-        # text = BeautifulSoup(html_text).get_text()
-        # with open("tech.txt", "w") as f:
-        #     f.write(text)
+        soup = BeautifulSoup(html_text)
+        soup.select("div.c-archives-load-more button.p-button")
 
 
     def test_main_menu_header_links(self):
@@ -51,14 +50,17 @@ class TestIndex(unittest.TestCase):
             #         href = li.select("a")[0].get("href")
             #         folder2href[active_folder].append(href)
 
-            links = Parser.parse_main_menu_links(content)
+
+            # folder2hrefs is a dict (folder -> list of href links)
+            folder2hrefs = Parser.parse_main_menu_links(content)
             pass
 
 
     def test_find_folder_links(self):
         with open("tech.html", "r") as f:
             content = f.read()
-            # soup = BeautifulSoup(content)
+            soup = BeautifulSoup(content)
+
             # r = soup.select("div.l-segment.l-main-content "
             #                 "div.c-compact-river__entry "
             #                 "a.c-entry-box--compact__image-wrapper")
@@ -67,7 +69,11 @@ class TestIndex(unittest.TestCase):
             #     links.append(a.get("href"))
             # pass
 
-            links = Parser.find_selected_folder_links(content)
+            # Next button:
+            next_ref = soup.select("a.c-pagination__next.c-pagination__link.p-button")
+
+
+            # links = Parser.find_links_on_selected_menu(content)
             pass
 
 
@@ -115,5 +121,12 @@ class TestIndex(unittest.TestCase):
                 time = times[0].get("datetime")
             pass
 
+
+    def test_html_next_page(self):
+        with open("tech_archives.html", "r") as f:
+            soup = BeautifulSoup(f.read())
+            hrefs = soup.select("a.c-pagination__next.c-pagination__link.p-button")
+            if len(hrefs) > 0:
+                next_page_link = hrefs[0].get("href")
 
 

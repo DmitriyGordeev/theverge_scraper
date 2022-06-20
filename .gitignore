@@ -1,2 +1,5 @@
 .idea/
 *.html
+drivers/
+*.log
+__pycache__/

@@ -48,7 +48,7 @@ class Parser:
 
 
     @staticmethod
-    def find_selected_folder_links(html):
+    def find_links_on_selected_menu(html):
         """ Returns a list of links to concrete articles """
         soup = BeautifulSoup(html)
         r = soup.select("div.l-segment.l-main-content "
