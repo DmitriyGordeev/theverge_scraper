@@ -44,8 +44,6 @@ class Scraper:
             exit(0)
 
         # loop through all main menu links and scrape all articles
-        # folder = list(self.main_menu_folder2hrefs.keys())[0]
-        # self.loop_through_folder_news(f"/{folder}/archives", folder)
         for folder in self.main_menu_folder2hrefs.keys():
             print (f"SCRAPING FOLDER = {folder}")
             self.loop_through_folder_news(f"/{folder}/archives", folder)
@@ -59,6 +57,9 @@ class Scraper:
         root = "https://theverge.com"
         html = requests.get(root, headers=self.emulate_headers()).text
         self.main_menu_folder2hrefs = Parser.parse_main_menu_links(html)
+
+        # TODO: compare the database and check for new topics or prepare cache for switching old topics
+        #  to inactive state when topics will be uploading to the database
 
 
     def loop_through_folder_news(self, folder_page1_url, folder_name):
