@@ -104,3 +104,16 @@ class TestIndex(unittest.TestCase):
             pass
 
 
+    def test_get_time(self):
+        with open("article.html", "r") as f:
+            content = f.read()
+            soup = BeautifulSoup(content)
+
+            times = soup.select("time")
+            time = ""
+            if len(times) > 0:
+                time = times[0].get("datetime")
+            pass
+
+
+

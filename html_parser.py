@@ -75,6 +75,11 @@ class Parser:
         authors_and_time = authors_and_time.replace("\n", "")
         authors_and_time = re.sub("\s{2,}", " ", authors_and_time).strip()
 
+        times = soup.select("time")
+        time = ""
+        if len(times) > 0:
+            time = times[0].get("datetime")
+
         # article's content - select all p and h2 where the main text resides
         entry_content = soup.select("div.c-entry-content")
         main_text_tags = entry_content[0].select("h2, p[id]")
@@ -90,11 +95,10 @@ class Parser:
         article = ArticleResult()
         article.header = header_text
         article.summary = summary_text
-        article.time = ""   # todo
+        article.time = time
         article.byline = authors_and_time
         article.main_text = main_text
         article.inner_links = refs
-
         return article
 
 
