@@ -3,3 +3,4 @@
 drivers/
 *.log
 __pycache__/
+*.json

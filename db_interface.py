@@ -45,4 +45,13 @@ class DBInterface:
         t.news_source = "theverge"
         t.active = True
         out.append(t)
+
+        t = Topic()
+        t.topic_id = 4
+        t.topic = "bionanolol"
+        t.url = "https://theverge.com/bionanolol"
+        t.news_source = "theverge"
+        t.active = True
+        out.append(t)
+
         return out
