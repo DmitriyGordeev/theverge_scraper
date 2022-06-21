@@ -8,12 +8,20 @@ class Topic:
         self.news_source = ''
         self.active = False
 
+    def to_dict(self):
+        out = dict()
+        out["topic_id"] = self.topic_id
+        out["topic"] = self.topic
+        out["url"] = self.url
+        out["news_source"] = self.news_source
+        out["active"] = self.active
+        return out
+
 
 
 class DBInterface:
     def __init__(self):
         pass
-
 
     def get_exisiting_topics_from_db(self):
         # TODO: should SELECT from db

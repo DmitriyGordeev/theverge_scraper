@@ -31,7 +31,7 @@ class TestIndex(unittest.TestCase):
 
 
     def test_main_menu_header_links(self):
-        with open("index.html", "r") as f:
+        with open("test_html_pages/index.html", "r") as f:
             content = f.read()
             # soup = BeautifulSoup(content)
             # header_section_search_result = soup.select('section.c-nav-list')
@@ -61,7 +61,7 @@ class TestIndex(unittest.TestCase):
 
 
     def test_find_folder_links(self):
-        with open("tech.html", "r") as f:
+        with open("test_html_pages/tech.html", "r") as f:
             content = f.read()
             soup = BeautifulSoup(content)
 
@@ -76,8 +76,7 @@ class TestIndex(unittest.TestCase):
             # Next button:
             next_ref = soup.select("a.c-pagination__next.c-pagination__link.p-button")
 
-
-            # links = Parser.find_links_on_selected_menu(content)
+            links = Parser.find_links_on_selected_menu(content)
             pass
 
 

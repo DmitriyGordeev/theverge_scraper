@@ -9,13 +9,14 @@ from html_parser import Parser
 from selenium import webdriver
 from time import sleep
 from pathlib import Path
-from db_interface import DBInterface
+from db_interface import DBInterface, Topic
 
 
 class Scraper:
     def __init__(self):
         self.root_domain = "https://theverge.com/"
         self.main_menu_folder2hrefs = dict()
+        self.main_menu_folder2url = dict()
         self.folder2articles = dict()       # this will store
                                             # (folder e.g. 'tech') -> (list of urls of all articles)
 
@@ -61,7 +62,7 @@ class Scraper:
     def find_main_menu_links(self):
         root = "https://theverge.com"
         html = requests.get(root, headers=self.emulate_headers()).text
-        self.main_menu_folder2hrefs = Parser.parse_main_menu_links(html)
+        self.main_menu_folder2hrefs, self.main_menu_folder2url = Parser.parse_main_menu_links(html)
 
         # TODO: compare the database and check for new topics or prepare cache for switching old topics
         #  to inactive state when topics will be uploading to the database
@@ -149,7 +150,34 @@ class Scraper:
         for st in scraped_topics:
             if st not in db_topic_names:      # we found brand new topic, need to add
                 new_topics.append(st)
-        return new_topics, db_topics
+
+        # write into file json file for further work with database
+        out_json = dict()
+        out_json["new_topics"] = []
+        out_json["inactive"] = []
+
+        # Saving new topics into resulting json to be dumped
+        # and caught by Database writer script
+        for nt in new_topics:
+            topic = Topic()
+            topic.topic_id = 0
+            topic.topic = nt
+            url = self.main_menu_folder2url[nt]
+            if url[0] == '/':
+                topic.url = self.root_domain + url
+            else:
+                topic.url = url
+            topic.active = True
+            topic.news_source = "theverge"
+            out_json["new_topics"].append(topic.to_dict())
+
+        # Saving topics that should be deactivated (inactive set to False)
+        for dbt in db_topics:
+            if not dbt.active:
+                out_json["inactive"].append(dbt.to_dict())
+
+        with open("topics_update.json", "w") as f:
+            f.write(json.dumps(out_json, indent=4))
 
 
 
