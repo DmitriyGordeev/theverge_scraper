@@ -47,7 +47,7 @@ class Parser:
         # TODO: change assert to ..? !
         assert len(r) > 0
 
-        folder2href = dict()
+        folder2href = dict()        # TODO: rename to 'folder2submenu_hrefs' ?
         active_folder = ""
         for li in r:
             folder = li.get("data-nav-item-id")

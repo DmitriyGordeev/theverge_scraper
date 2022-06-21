@@ -9,6 +9,7 @@ from html_parser import Parser
 from selenium import webdriver
 from time import sleep
 from pathlib import Path
+from db_interface import DBInterface
 
 
 class Scraper:
@@ -22,6 +23,7 @@ class Scraper:
         option = webdriver.ChromeOptions()
         option.add_argument('headless')
         self.driver = webdriver.Chrome('drivers/chromedriver.exe', options=option)
+        self.db_interface = DBInterface
 
 
     def get_page_selenium(self, url: str) -> str:
@@ -42,6 +44,9 @@ class Scraper:
             print ("No menu links found")
             # TODO: logger
             exit(0)
+
+        # TODO: collate scraped topics with the ones from db
+
 
         # loop through all main menu links and scrape all articles
         for folder in self.main_menu_folder2hrefs.keys():
@@ -129,6 +134,22 @@ class Scraper:
                 article_result_object.url = url
                 with open(folder + f"/{i}.txt", "w") as f:
                     f.write(article_result_object.formatted_text())
+
+
+    def compare_topics_with_db(self):
+        db_topics = DBInterface.local_test__get_exisiting_topics_from_db()
+        db_topic_names = [x.topic for x in db_topics]
+        scraped_topics = list(self.main_menu_folder2hrefs.keys())
+
+        for i in range(len(db_topics)):
+            if db_topics[i].topic not in scraped_topics:     # site doesn't have this topic now
+                db_topics[i].active = False
+
+        new_topics = []
+        for st in scraped_topics:
+            if st not in db_topic_names:      # we found brand new topic, need to add
+                new_topics.append(st)
+        return new_topics, db_topics
 
 
 
