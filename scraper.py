@@ -155,8 +155,8 @@ class Scraper:
                 # TODO: check if already in the database or not
                 article_result_object = Parser.parse_article_page(html_text)
                 article_result_object.url = url
-                with open(folder + f"/{article_result_object.short()}.txt", "w") as f:
-                    f.write(article_result_object.formatted_text())
+                with open(folder + f"/{article_result_object.short()}.json", "w") as f:
+                    f.write(article_result_object.to_json_string())
 
 
     def find_new_articles_for_folder(self, folder_name):
@@ -193,8 +193,8 @@ class Scraper:
                 print (f"Num articles gathered = {count - 1}")
                 return
 
-            with open(folder_name + f"/{article_result.short()}.txt", "w") as f:
-                f.write(article_result.formatted_text())
+            with open(folder_name + f"/{article_result.short()}.json", "w") as f:
+                f.write(article_result.to_json_string())
 
 
 

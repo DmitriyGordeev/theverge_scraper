@@ -28,6 +28,17 @@ class ArticleResult:
         output += f"{self.main_text}"
         return output
 
+
+    def to_json_string(self):
+        out = dict()
+        out["url"] = self.url
+        out["title"] = self.header
+        out["content"] = self.main_text
+        out["dt"] = self.time
+        out["tags"] = self.tags
+        return json.dumps(out, indent=4)
+
+
     def short(self):
         header = self.header.lower()
         header = re.sub('[^a-zA-Z ]+', '', header)
@@ -128,8 +139,6 @@ class Parser:
         main_text = ""
         for t in main_text_tags:
             main_text += t.text
-        with open("content.txt", "w", encoding="utf-8") as fw:
-            fw.write(main_text)
 
         # References inside the article:
         refs = entry_content[0].select("a")

@@ -52,7 +52,7 @@ class DBInterface:
 
     @staticmethod
     def local_test__get_num_existing_articles_from_db():
-        return 0
+        return 1
 
 
     @staticmethod
