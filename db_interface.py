@@ -1,3 +1,4 @@
+import datetime
 
 
 class Topic:
@@ -23,9 +24,36 @@ class DBInterface:
     def __init__(self):
         pass
 
+
     def get_exisiting_topics_from_db(self):
         # TODO: should SELECT from db
         pass
+
+
+    def get_num_existing_articles_from_db(self):
+        # TODO: should SELECT NUM of existing articles from db for 'theverge'
+        pass
+
+
+    def get_the_last_article_time(self):
+        """ Extracts datetime of the last article from DB as a string and
+            converts into python's datetime object
+         """
+        # TODO: should SELECT from db
+        pass
+
+
+    @staticmethod
+    def local_test__get_the_last_article_time():
+        test_datetime_extracted_from_db = "2022-06-21T23:00:00"
+        out = datetime.datetime.strptime(test_datetime_extracted_from_db, "%Y-%m-%dT%H:%M:%S")
+        return out
+
+
+    @staticmethod
+    def local_test__get_num_existing_articles_from_db():
+        return 0
+
 
     @staticmethod
     def local_test__get_exisiting_topics_from_db():
@@ -55,3 +83,6 @@ class DBInterface:
         out.append(t)
 
         return out
+
+
+

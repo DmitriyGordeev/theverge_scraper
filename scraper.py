@@ -10,6 +10,7 @@ from selenium import webdriver
 from time import sleep
 from pathlib import Path
 from db_interface import DBInterface, Topic
+import datetime
 
 
 class Scraper:
@@ -24,7 +25,14 @@ class Scraper:
         option = webdriver.ChromeOptions()
         option.add_argument('headless')
         self.driver = webdriver.Chrome('drivers/chromedriver.exe', options=option)
-        self.db_interface = DBInterface
+        self.db_interface = DBInterface()
+
+        # These are to be set after looking into Database with SELECT request: (?)
+        self.last_article_time = datetime.datetime.today()
+        self.db_existing_articles_urls = []
+
+        self.from_scratch_mode = False
+        self.max_pages_depth = 1
 
 
     def get_page_selenium(self, url: str) -> str:
@@ -38,6 +46,9 @@ class Scraper:
 
 
     def requests_pipeline(self):
+        self.from_scratch_mode = DBInterface.local_test__get_num_existing_articles_from_db() == 0
+        self.last_article_time = DBInterface.local_test__get_the_last_article_time()
+
         self.find_main_menu_links()
 
         # if we haven't found any, just stop and log it
@@ -46,17 +57,22 @@ class Scraper:
             # TODO: logger
             exit(0)
 
-        # TODO: collate scraped topics with the ones from db
+        if self.from_scratch_mode:
+            # loop through all main menu links and scrape all articles
+            for folder in self.main_menu_folder2hrefs.keys():
+                print (f"SCRAPING FOLDER = {folder}")
+                self.find_and_download_only_new_articles_for_selected_folder(folder)
+                self.full_loop_through_folder_pages(f"/{folder}/archives", folder)
 
+            # Loop through article urls in each folder:
+            self.loop_through_gathered_articles()
 
-        # loop through all main menu links and scrape all articles
-        for folder in self.main_menu_folder2hrefs.keys():
-            print (f"SCRAPING FOLDER = {folder}")
-            self.loop_through_folder_news(f"/{folder}/archives", folder)
-            break   # TODO: remove, this is only for test
-
-        # Loop through article urls in each folder:
-        self.loop_through_gathered_articles()
+        # if self.from_scratch_mode = False we search for new articles only
+        # in this case we should have valid 'self.last_article_time'
+        else:
+            for folder in self.main_menu_folder2hrefs.keys():
+                print (f"SCRAPING FOLDER = {folder}")
+                self.find_and_download_only_new_articles_for_selected_folder(folder)
 
 
     def find_main_menu_links(self):
@@ -68,7 +84,7 @@ class Scraper:
         #  to inactive state when topics will be uploading to the database
 
 
-    def loop_through_folder_news(self, folder_page1_url, folder_name):
+    def full_loop_through_folder_pages(self, folder_page1_url, folder_name):
         # 1. получаем через selenium
         # 2. парсим все ссылки с помощью .find_links_on_selected_menu
         # 3. добавляем в дикт всех (tech -> конкретные ссылки)
@@ -76,8 +92,11 @@ class Scraper:
         # 5. если найдена то берем след. страницу с selenium запускаем цикл
         f = open(f"{folder_name}_articles.log", "w")
 
+        Path(f"{folder_name}").mkdir(parents=True, exist_ok=True)
+
         next_button_exists = True
         target_page = folder_page1_url
+        num_pages_looked_through_so_far = 0
         while next_button_exists:
             page_html = self.get_page_selenium(self.root_domain + target_page)
             if page_html == "":
@@ -92,9 +111,6 @@ class Scraper:
             else:
                 self.folder2articles[folder_name] = article_links
 
-            for al in article_links:
-                f.write(al + "\n")
-
             print (f"target_page = {target_page}, num articles gathered = {len(article_links)}")
 
             # looking for 'next' button:
@@ -106,6 +122,12 @@ class Scraper:
                 continue
 
             target_page = hrefs[0].get("href")
+
+            num_pages_looked_through_so_far += 1
+            if num_pages_looked_through_so_far >= self.max_pages_depth:
+                print ("Max depth reached. Stop")
+                return
+
         f.close()
 
 
@@ -135,6 +157,45 @@ class Scraper:
                 article_result_object.url = url
                 with open(folder + f"/{i}.txt", "w") as f:
                     f.write(article_result_object.formatted_text())
+
+
+    def find_and_download_only_new_articles_for_selected_folder(self, folder_name):
+        Path(f"{folder_name}").mkdir(parents=True, exist_ok=True)
+
+        headers = self.emulate_headers()
+        page_html = requests.get(self.root_domain + self.main_menu_folder2url[folder_name], headers=headers).text
+        page_html = page_html.replace(">", ">\n")
+
+        # parse all the refs to the concrete articles:
+        article_links = Parser.find_links_on_selected_menu(page_html)
+        count = 0
+        for i, a_url in enumerate(article_links):
+            count += 1
+            print(f"parsing articles: {i}/{len(article_links)}")
+            headers = self.emulate_headers()
+            html_text = requests.get(a_url, headers=headers).text
+            html_text = html_text.replace(">", ">\n")
+
+            article_result = Parser.parse_article_page(html_text)
+            article_result.url = a_url
+
+            if article_result.parsing_error != "":
+                continue
+
+            print (f"title = {article_result.header}, article_result.time = {article_result.time}")
+
+            current_article_datetime = datetime.datetime.strptime(article_result.time, "%Y-%m-%dT%H:%M:%S")
+
+            # TODO: also we can retrieve urls for the past 5 days and find if current url is there
+            #   if so we stop as well
+            if current_article_datetime <= self.last_article_time:
+                print ("Found old article, stop here")
+                print (f"Num articles gathered = {count - 1}")
+                return
+
+            with open(folder_name + f"/{i}.txt", "w") as f:
+                f.write(article_result.formatted_text())
+
 
 
     def compare_topics_with_db(self):

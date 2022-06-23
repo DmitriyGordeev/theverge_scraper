@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 import json
 from urllib.parse import urlparse
 from html_parser import Parser
+import datetime
 
 
 class TestIndex(unittest.TestCase):
@@ -110,6 +111,10 @@ class TestIndex(unittest.TestCase):
             # pass
 
             article_result = Parser.parse_article_page(content)
+            try:
+                dt = datetime.datetime.strptime(article_result.time, "%Y-%m-%dT%H-%M:%S")
+            except:
+                print ("Error parsing time")
             pass
 
 
