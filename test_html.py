@@ -138,3 +138,12 @@ class TestIndex(unittest.TestCase):
                 next_page_link = hrefs[0].get("href")
 
 
+    def test_compress_string(self):
+        header = "General Motors is using AI to speed up the vehicle inspection process"
+        header = header.lower()
+        words = header.split(" ")
+        out = ''
+        if len(words) > 2:
+            out = '_'.join(words[:2])
+        pass
+

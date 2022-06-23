@@ -28,6 +28,16 @@ class ArticleResult:
         output += f"{self.main_text}"
         return output
 
+    def short(self):
+        header = self.header.lower()
+        header = re.sub('[^a-zA-Z ]+', '', header)
+        words = header.split(" ")
+        out = ''
+        if len(words) > 2:
+            out = '_'.join(words[:2])
+        out = out + "_" + self.time
+        out = out.replace(":", "")
+        return out
 
 
 class Parser:

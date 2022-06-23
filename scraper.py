@@ -61,7 +61,7 @@ class Scraper:
             # loop through all main menu links and scrape all articles
             for folder in self.main_menu_folder2hrefs.keys():
                 print (f"SCRAPING FOLDER = {folder}")
-                self.find_and_download_only_new_articles_for_selected_folder(folder)
+                self.find_new_articles_for_folder(folder)
                 self.full_loop_through_folder_pages(f"/{folder}/archives", folder)
 
             # Loop through article urls in each folder:
@@ -72,7 +72,7 @@ class Scraper:
         else:
             for folder in self.main_menu_folder2hrefs.keys():
                 print (f"SCRAPING FOLDER = {folder}")
-                self.find_and_download_only_new_articles_for_selected_folder(folder)
+                self.find_new_articles_for_folder(folder)
 
 
     def find_main_menu_links(self):
@@ -155,11 +155,11 @@ class Scraper:
                 # TODO: check if already in the database or not
                 article_result_object = Parser.parse_article_page(html_text)
                 article_result_object.url = url
-                with open(folder + f"/{i}.txt", "w") as f:
+                with open(folder + f"/{article_result_object.short()}.txt", "w") as f:
                     f.write(article_result_object.formatted_text())
 
 
-    def find_and_download_only_new_articles_for_selected_folder(self, folder_name):
+    def find_new_articles_for_folder(self, folder_name):
         Path(f"{folder_name}").mkdir(parents=True, exist_ok=True)
 
         headers = self.emulate_headers()
@@ -193,7 +193,7 @@ class Scraper:
                 print (f"Num articles gathered = {count - 1}")
                 return
 
-            with open(folder_name + f"/{i}.txt", "w") as f:
+            with open(folder_name + f"/{article_result.short()}.txt", "w") as f:
                 f.write(article_result.formatted_text())
 
 
