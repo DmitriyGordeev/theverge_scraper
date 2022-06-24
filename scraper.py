@@ -16,6 +16,7 @@ import datetime
 class Scraper:
     def __init__(self):
         self.root_domain = "https://theverge.com/"
+        self.root_output_dir = "data"
         self.main_menu_folder2hrefs = dict()
         self.main_menu_folder2url = dict()
         self.folder2articles = dict()       # this will store
@@ -45,6 +46,9 @@ class Scraper:
 
 
     def requests_pipeline(self):
+        Path(self.root_output_dir).mkdir(parents=True, exist_ok=True)
+        Path(self.root_output_dir + "/articles").mkdir(parents=True, exist_ok=True)
+
         # self.from_scratch_mode = DBInterface.local_test__get_num_existing_articles_from_db() == 0
         # self.last_article_time = DBInterface.local_test__get_the_last_article_time()
 
@@ -94,9 +98,9 @@ class Scraper:
         # 3. добавляем в дикт всех (tech -> конкретные ссылки)
         # 4. ищем кнопку next
         # 5. если найдена то берем след. страницу с selenium запускаем цикл
-        f = open(f"{folder_name}_articles.log", "w")
+        # f = open(f"{folder_name}_articles.log", "w")
 
-        Path(f"{folder_name}").mkdir(parents=True, exist_ok=True)
+        # Path(f"{folder_name}").mkdir(parents=True, exist_ok=True)
 
         next_button_exists = True
         target_page = folder_page1_url
@@ -132,7 +136,7 @@ class Scraper:
                 print ("Max depth reached. Stop")
                 return
 
-        f.close()
+        # f.close()
 
 
     def loop_through_gathered_articles(self):
@@ -147,7 +151,7 @@ class Scraper:
                 # todo: log this
                 continue
 
-            Path(f"{folder}").mkdir(parents=True, exist_ok=True)
+            # Path(f"{folder}").mkdir(parents=True, exist_ok=True)
 
             for i, url in enumerate(articles):
                 print (f"parsing articles: {i}/{len(articles)}")
@@ -159,12 +163,12 @@ class Scraper:
                 # TODO: check if already in the database or not
                 article_result_object = Parser.parse_article_page(html_text)
                 article_result_object.url = url
-                with open(folder + f"/{article_result_object.short()}.json", "w") as f:
+                with open(self.root_output_dir + f"/articles/{article_result_object.short()}.json", "w") as f:
                     f.write(article_result_object.to_json_string())
 
 
     def find_new_articles_for_folder(self, folder_name):
-        Path(f"{folder_name}").mkdir(parents=True, exist_ok=True)
+        # Path(f"{folder_name}").mkdir(parents=True, exist_ok=True)
 
         headers = self.emulate_headers()
         page_html = requests.get(self.root_domain + self.main_menu_folder2url[folder_name], headers=headers).text
@@ -197,7 +201,7 @@ class Scraper:
                 print (f"Num articles gathered = {count - 1}")
                 return
 
-            with open(folder_name + f"/{article_result.short()}.json", "w") as f:
+            with open(self.root_output_dir + f"/articles/{article_result.short()}.json", "w") as f:
                 f.write(article_result.to_json_string())
 
 
@@ -241,7 +245,7 @@ class Scraper:
             if not dbt.active:
                 out_json["inactive"].append(dbt.to_dict())
 
-        with open("topics_update.json", "w") as f:
+        with open(self.root_output_dir + "/topics_update.json", "w") as f:
             f.write(json.dumps(out_json, indent=4))
 
 
