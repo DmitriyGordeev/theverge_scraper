@@ -93,10 +93,22 @@ class Parser:
     def find_links_on_selected_menu(html):
         """ Returns a list of links to concrete articles """
         soup = BeautifulSoup(html)
+        links = []
+
+        # find two 'Hero' links at the top
+        section_two_up = soup.select("section.c-two-up")
+        if len(section_two_up) > 0:
+            section_two_up = section_two_up[0]
+            headlines = section_two_up.select(".c-entry-box-base__headline")
+            for h in headlines:
+                a = h.select("a")
+                if len(a) > 0:
+                    links.append(a[0].get("href"))
+
+        # parsing the rest of the page (long scroll-list of the articles)
         r = soup.select("div.l-segment.l-main-content "
                         "div.c-compact-river__entry "
                         "a.c-entry-box--compact__image-wrapper")
-        links = []
         for a in r:
             links.append(a.get("href"))
         return links

@@ -11,7 +11,7 @@ import datetime
 class TestIndex(unittest.TestCase):
 
     def test_index_html(self):
-        url = "https://www.theverge.com/2022/6/16/23168987/eu-code-disinformation-online-propaganda-facebook-twitter-tiktok"
+        url = "https://www.theverge.com/tech"
 
         HEADERS = ({'User-Agent':
                         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 \
@@ -20,15 +20,12 @@ class TestIndex(unittest.TestCase):
 
         html_text = requests.get(url, headers=HEADERS).text
         html_text = html_text.replace(">", ">\n")
-        with open(f"test_html_pages/article.html", "w") as f:
+        with open(f"test_html_pages/tech.html", "w") as f:
             f.write(html_text)
 
         soup = BeautifulSoup(html_text)
-        span_tags = soup.select("div.c-entry-group-labels "
-                                "li.c-entry-group-labels__item "
-                                "span")
-        span_tags = [x.text.replace("\n", "") for x in span_tags]
         pass
+        # soup.select("section.c-two-up")[0].select(".c-entry-box-base__headline")[0].select("a")[0].get("href")
 
 
     def test_main_menu_header_links(self):
@@ -65,14 +62,6 @@ class TestIndex(unittest.TestCase):
         with open("test_html_pages/tech.html", "r") as f:
             content = f.read()
             soup = BeautifulSoup(content)
-
-            # r = soup.select("div.l-segment.l-main-content "
-            #                 "div.c-compact-river__entry "
-            #                 "a.c-entry-box--compact__image-wrapper")
-            # links = []
-            # for a in r:
-            #     links.append(a.get("href"))
-            # pass
 
             # Next button:
             next_ref = soup.select("a.c-pagination__next.c-pagination__link.p-button")

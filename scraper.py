@@ -44,7 +44,6 @@ class Scraper:
         return html
 
 
-
     def requests_pipeline(self):
         self.from_scratch_mode = DBInterface.local_test__get_num_existing_articles_from_db() == 0
         self.last_article_time = DBInterface.local_test__get_the_last_article_time()
@@ -197,7 +196,6 @@ class Scraper:
                 f.write(article_result.to_json_string())
 
 
-
     def compare_topics_with_db(self):
         db_topics = DBInterface.local_test__get_exisiting_topics_from_db()
         db_topic_names = [x.topic for x in db_topics]
@@ -239,7 +237,6 @@ class Scraper:
 
         with open("topics_update.json", "w") as f:
             f.write(json.dumps(out_json, indent=4))
-
 
 
     @staticmethod
