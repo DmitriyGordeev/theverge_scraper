@@ -45,8 +45,11 @@ class Scraper:
 
 
     def requests_pipeline(self):
-        self.from_scratch_mode = DBInterface.local_test__get_num_existing_articles_from_db() == 0
-        self.last_article_time = DBInterface.local_test__get_the_last_article_time()
+        # self.from_scratch_mode = DBInterface.local_test__get_num_existing_articles_from_db() == 0
+        # self.last_article_time = DBInterface.local_test__get_the_last_article_time()
+
+        self.from_scratch_mode = self.db_interface.get_num_existing_articles_from_db() == 0
+        self.last_article_time = self.db_interface.get_the_last_article_time()
 
         self.find_main_menu_links()
 
@@ -55,6 +58,8 @@ class Scraper:
             print ("No menu links found")
             # TODO: logger
             exit(0)
+
+        self.write_topics_update_file()
 
         if self.from_scratch_mode:
             # loop through all main menu links and scrape all articles
@@ -196,8 +201,9 @@ class Scraper:
                 f.write(article_result.to_json_string())
 
 
-    def compare_topics_with_db(self):
-        db_topics = DBInterface.local_test__get_exisiting_topics_from_db()
+    def write_topics_update_file(self):
+        # db_topics = DBInterface.local_test__get_exisiting_topics_from_db()
+        db_topics = self.db_interface.get_exisiting_topics_from_db()
         db_topic_names = [x.topic for x in db_topics]
         scraped_topics = list(self.main_menu_folder2hrefs.keys())
 
