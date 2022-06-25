@@ -1,5 +1,5 @@
 import unittest
-import db_interface
+import mysql_db_interface
 import mysql.connector
 
 
@@ -22,7 +22,7 @@ class TestDBInterface(unittest.TestCase):
 
 
     def test_get_topics(self):
-        db = db_interface.DBInterface()
+        db = mysql_db_interface.MysqlDBInterface()
         r = db.get_exisiting_topics_from_db()
         pass
 

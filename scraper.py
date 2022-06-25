@@ -9,7 +9,7 @@ from html_parser import Parser
 from selenium import webdriver
 from time import sleep
 from pathlib import Path
-from db_interface import DBInterface, Topic
+from mysql_db_interface import MysqlDBInterface, Topic
 import datetime
 
 
@@ -26,7 +26,7 @@ class Scraper:
         option = webdriver.ChromeOptions()
         option.add_argument('headless')
         self.driver = webdriver.Chrome('drivers/chromedriver.exe', options=option)
-        self.db_interface = DBInterface()
+        self.db_interface = MysqlDBInterface()
 
         # These are to be set after looking into Database with SELECT request: (?)
         self.last_article_time = datetime.datetime.today()
@@ -49,8 +49,8 @@ class Scraper:
         Path(self.root_output_dir).mkdir(parents=True, exist_ok=True)
         Path(self.root_output_dir + "/articles").mkdir(parents=True, exist_ok=True)
 
-        # self.from_scratch_mode = DBInterface.local_test__get_num_existing_articles_from_db() == 0
-        # self.last_article_time = DBInterface.local_test__get_the_last_article_time()
+        # self.from_scratch_mode = MysqlDBInterface.local_test__get_num_existing_articles_from_db() == 0
+        # self.last_article_time = MysqlDBInterface.local_test__get_the_last_article_time()
 
         self.from_scratch_mode = self.db_interface.get_num_existing_articles_from_db() == 0
         self.last_article_time = self.db_interface.get_the_last_article_time()
@@ -206,7 +206,7 @@ class Scraper:
 
 
     def write_topics_update_file(self):
-        # db_topics = DBInterface.local_test__get_exisiting_topics_from_db()
+        # db_topics = MysqlDBInterface.local_test__get_exisiting_topics_from_db()
         db_topics = self.db_interface.get_exisiting_topics_from_db()
         db_topic_names = [x.topic for x in db_topics]
         scraped_topics = list(self.main_menu_folder2hrefs.keys())
