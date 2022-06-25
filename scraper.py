@@ -9,7 +9,8 @@ from html_parser import Parser
 from selenium import webdriver
 from time import sleep
 from pathlib import Path
-from mysql_db_interface import MysqlDBInterface, Topic
+from topics import *
+from postgre_db_interface import *
 import datetime
 
 
@@ -26,7 +27,7 @@ class Scraper:
         option = webdriver.ChromeOptions()
         option.add_argument('headless')
         self.driver = webdriver.Chrome('drivers/chromedriver.exe', options=option)
-        self.db_interface = MysqlDBInterface()
+        self.db_interface = PostgreDBInterface()
 
         # These are to be set after looking into Database with SELECT request: (?)
         self.last_article_time = datetime.datetime.today()
