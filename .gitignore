@@ -5,3 +5,4 @@ drivers/
 __pycache__/
 *.json
 content.txt
+data/

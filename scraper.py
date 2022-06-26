@@ -18,10 +18,10 @@ class Scraper:
     def __init__(self):
         self.root_domain = "https://theverge.com/"
         self.root_output_dir = "data"
-        self.main_menu_folder2hrefs = dict()
-        self.main_menu_folder2url = dict()
-        self.folder2articles = dict()       # this will store
-                                            # (folder e.g. 'tech') -> (list of urls of all articles)
+        self.main_menu_topic2hrefs = dict()
+        self.main_menu_topic2url = dict()
+        self.topic2articles = dict()       # this will store
+                                            # (topic e.g. 'tech') -> (list of urls of all articles)
 
         # TODO: 'look up to date' -  field
         option = webdriver.ChromeOptions()
@@ -32,6 +32,10 @@ class Scraper:
         # These are to be set after looking into Database with SELECT request: (?)
         self.last_article_time = datetime.datetime.today()
         self.db_existing_articles_urls = []
+
+        # this is a dict key = 'topic name', value is topic_id
+        # contains a map of topics that exist in DB already
+        self.existing_topic2topic_id = dict()
 
         self.from_scratch_mode = False
         self.max_pages_depth = 1
@@ -59,7 +63,7 @@ class Scraper:
         self.find_main_menu_links()
 
         # if we haven't found any, just stop and log it
-        if len(self.main_menu_folder2hrefs) == 0:
+        if len(self.main_menu_topic2hrefs) == 0:
             print ("No menu links found")
             # TODO: logger
             exit(0)
@@ -68,43 +72,41 @@ class Scraper:
 
         if self.from_scratch_mode:
             # loop through all main menu links and scrape all articles
-            for folder in self.main_menu_folder2hrefs.keys():
-                print (f"SCRAPING FOLDER = {folder}")
-                self.find_new_articles_for_folder(folder)
-                self.full_loop_through_folder_pages(f"/{folder}/archives", folder)
+            for topic in self.main_menu_topic2hrefs.keys():
+                print (f"SCRAPING topic = {topic}")
+                self.find_new_articles_for_topic(topic)
+                self.full_loop_through_topic_pages(f"/{topic}/archives", topic)
 
-            # Loop through article urls in each folder:
+            # Loop through article urls in each topic:
             self.loop_through_gathered_articles()
 
         # if self.from_scratch_mode = False we search for new articles only
         # in this case we should have valid 'self.last_article_time'
         else:
-            for folder in self.main_menu_folder2hrefs.keys():
-                print (f"SCRAPING FOLDER = {folder}")
-                self.find_new_articles_for_folder(folder)
+            for topic in self.main_menu_topic2hrefs.keys():
+                print (f"SCRAPING topic = {topic}")
+                self.find_new_articles_for_topic(topic)
 
 
     def find_main_menu_links(self):
         root = "https://theverge.com"
         html = requests.get(root, headers=self.emulate_headers()).text
-        self.main_menu_folder2hrefs, self.main_menu_folder2url = Parser.parse_main_menu_links(html)
+        self.main_menu_topic2hrefs, self.main_menu_topic2url = Parser.parse_main_menu_links(html)
 
         # TODO: compare the database and check for new topics or prepare cache for switching old topics
         #  to inactive state when topics will be uploading to the database
 
 
-    def full_loop_through_folder_pages(self, folder_page1_url, folder_name):
+    def full_loop_through_topic_pages(self, topic_page1_url, topic_name):
         # 1. получаем через selenium
         # 2. парсим все ссылки с помощью .find_links_on_selected_menu
         # 3. добавляем в дикт всех (tech -> конкретные ссылки)
         # 4. ищем кнопку next
         # 5. если найдена то берем след. страницу с selenium запускаем цикл
-        # f = open(f"{folder_name}_articles.log", "w")
-
-        # Path(f"{folder_name}").mkdir(parents=True, exist_ok=True)
+        # f = open(f"{topic_name}_articles.log", "w")
 
         next_button_exists = True
-        target_page = folder_page1_url
+        target_page = topic_page1_url
         num_pages_looked_through_so_far = 0
         while next_button_exists:
             page_html = self.get_page_selenium(self.root_domain + target_page)
@@ -115,10 +117,10 @@ class Scraper:
 
             # parse all the refs to the concrete articles:
             article_links = Parser.find_links_on_selected_menu(page_html)
-            if folder_name in self.folder2articles:
-                self.folder2articles[folder_name] += article_links
+            if topic_name in self.topic2articles:
+                self.topic2articles[topic_name] += article_links
             else:
-                self.folder2articles[folder_name] = article_links
+                self.topic2articles[topic_name] = article_links
 
             print (f"target_page = {target_page}, num articles gathered = {len(article_links)}")
 
@@ -137,22 +139,18 @@ class Scraper:
                 print ("Max depth reached. Stop")
                 return
 
-        # f.close()
-
 
     def loop_through_gathered_articles(self):
-        if not self.folder2articles:
-            print ("self.folder2articles is empty")
+        if not self.topic2articles:
+            print ("self.topic2articles is empty")
             # TODO: log this
             exit(1)
 
-        for folder, articles in self.folder2articles.items():
+        for topic_name, articles in self.topic2articles.items():
             if len(articles) == 0:
-                print (f"folder {folder} doesn't contain articles")
+                print (f"topic_name {topic_name} doesn't contain articles")
                 # todo: log this
                 continue
-
-            # Path(f"{folder}").mkdir(parents=True, exist_ok=True)
 
             for i, url in enumerate(articles):
                 print (f"parsing articles: {i}/{len(articles)}")
@@ -161,18 +159,21 @@ class Scraper:
                 html_text = requests.get(url, headers=headers).text
                 html_text = html_text.replace(">", ">\n")
 
-                # TODO: check if already in the database or not
-                article_result_object = Parser.parse_article_page(html_text)
-                article_result_object.url = url
-                with open(self.root_output_dir + f"/articles/{article_result_object.short()}.json", "w") as f:
-                    f.write(article_result_object.to_json_string())
+                article_result = Parser.parse_article_page(html_text)
+                article_result.url = url
+
+                # assign topic id if it is existing topic:
+                if topic_name in self.existing_topic2topic_id:
+                    article_result.topic_id = \
+                        self.existing_topic2topic_id[topic_name]
+
+                with open(self.root_output_dir + f"/articles/{article_result.short()}.json", "w") as f:
+                    f.write(article_result.to_json_string())
 
 
-    def find_new_articles_for_folder(self, folder_name):
-        # Path(f"{folder_name}").mkdir(parents=True, exist_ok=True)
-
+    def find_new_articles_for_topic(self, topic_name):
         headers = self.emulate_headers()
-        page_html = requests.get(self.root_domain + self.main_menu_folder2url[folder_name], headers=headers).text
+        page_html = requests.get(self.root_domain + self.main_menu_topic2url[topic_name], headers=headers).text
         page_html = page_html.replace(">", ">\n")
 
         # parse all the refs to the concrete articles:
@@ -187,6 +188,11 @@ class Scraper:
 
             article_result = Parser.parse_article_page(html_text)
             article_result.url = a_url
+            
+            # assign topic id if it is existing topic:
+            if topic_name in self.existing_topic2topic_id:
+                article_result.topic_id = \
+                    self.existing_topic2topic_id[topic_name]
 
             if article_result.parsing_error != "":
                 continue
@@ -210,9 +216,10 @@ class Scraper:
         # db_topics = MysqlDBInterface.local_test__get_exisiting_topics_from_db()
         db_topics = self.db_interface.get_exisiting_topics_from_db()
         db_topic_names = [x.topic for x in db_topics]
-        scraped_topics = list(self.main_menu_folder2hrefs.keys())
+        scraped_topics = list(self.main_menu_topic2hrefs.keys())
 
         for i in range(len(db_topics)):
+            self.existing_topic2topic_id[db_topics[i].topic] = db_topics[i].topic_id
             if db_topics[i].topic not in scraped_topics:     # site doesn't have this topic now
                 db_topics[i].active = False
 
@@ -232,7 +239,7 @@ class Scraper:
             topic = Topic()
             topic.topic_id = 0
             topic.topic = nt
-            url = self.main_menu_folder2url[nt]
+            url = self.main_menu_topic2url[nt]
             if url[0] == '/':
                 topic.url = self.root_domain + url
             else:
