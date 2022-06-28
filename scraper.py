@@ -161,6 +161,7 @@ class Scraper:
 
                 article_result = Parser.parse_article_page(html_text)
                 article_result.url = url
+                article_result.topic_name = topic_name
 
                 # assign topic id if it is existing topic:
                 if topic_name in self.existing_topic2topic_id:
@@ -188,6 +189,7 @@ class Scraper:
 
             article_result = Parser.parse_article_page(html_text)
             article_result.url = a_url
+            article_result.topic_name = topic_name
             
             # assign topic id if it is existing topic:
             if topic_name in self.existing_topic2topic_id:
@@ -201,12 +203,13 @@ class Scraper:
 
             current_article_datetime = datetime.datetime.strptime(article_result.time, "%Y-%m-%dT%H:%M:%S")
 
-            # TODO: also we can retrieve urls for the past 5 days and find if current url is there
-            #   if so we stop as well
-            if current_article_datetime <= self.last_article_time:
-                print ("Found old article, stop here")
-                print (f"Num articles gathered = {count - 1}")
-                return
+            if self.last_article_time is not None:
+                # TODO: also we can retrieve urls for the past 5 days and find if current url is there
+                #   if so we stop as well
+                if current_article_datetime <= self.last_article_time:
+                    print ("Found old article, stop here")
+                    print (f"Num articles gathered = {count - 1}")
+                    return
 
             with open(self.root_output_dir + f"/articles/{article_result.short()}.json", "w") as f:
                 f.write(article_result.to_json_string())

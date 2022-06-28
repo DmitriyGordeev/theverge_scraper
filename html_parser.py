@@ -18,6 +18,7 @@ class ArticleResult:
         self.inner_links = []
         self.parsing_error = ""
         self.topic_id = 0
+        self.topic_name = ""
 
     def formatted_text(self):
         output = ""
@@ -38,6 +39,7 @@ class ArticleResult:
         out["dt"] = self.time
         out["tags"] = self.tags
         out["topic_id"] = self.topic_id
+        out["topic_name"] = self.topic_name
         out["parsing_error"] = self.parsing_error
         return json.dumps(out, indent=4)
 
@@ -132,6 +134,7 @@ class Parser:
             return article
 
         header_text = header_wrap[0].select("h1")[0].text
+        # TODO:
         summary_text = soup.select("article.l-main-content p.c-entry-summary")[0].text
         authors_and_time = soup.select("article.l-main-content div.c-byline")[0].text
         authors_and_time = authors_and_time.replace("\n", "")
