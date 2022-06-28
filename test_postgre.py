@@ -1,7 +1,7 @@
 import unittest
 from configparser import ConfigParser
 import psycopg2
-
+import pandas
 
 
 def config(filename='postgre_config.ini', section='postgresql'):
@@ -71,4 +71,17 @@ class TestPostgreRequest(unittest.TestCase):
 
 
     def test_load_db_settings_from_ini_and_connect(self):
-        connect()
+        conn = psycopg2.connect(
+            host="localhost",
+            database="news",
+            user="postgres",
+            password="1234")
+        df = pandas.read_sql('SELECT * FROM topics', con=conn)
+        print(df)
+
+
+    def test_load_db_with_ini_file(self):
+        params = config()
+        conn = psycopg2.connect(**params)
+        df = pandas.read_sql('SELECT * FROM topics', con=conn)
+        print(df)

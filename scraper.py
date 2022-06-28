@@ -22,7 +22,7 @@ class Scraper:
         self.db_interface = PostgreDBInterface()
 
         # These are to be set after looking into Database with SELECT request: (?)
-        self.last_article_time = datetime.datetime.today()
+        # self.last_article_time = datetime.datetime.today()
         self.db_existing_articles_urls = []
 
         # this is a dict key = 'topic name', value is topic_id
@@ -47,11 +47,8 @@ class Scraper:
         Path(self.root_output_dir).mkdir(parents=True, exist_ok=True)
         Path(self.root_output_dir + "/articles").mkdir(parents=True, exist_ok=True)
 
-        # self.from_scratch_mode = MysqlDBInterface.local_test__get_num_existing_articles_from_db() == 0
-        # self.last_article_time = MysqlDBInterface.local_test__get_the_last_article_time()
-
         self.from_scratch_mode = self.db_interface.get_num_existing_articles_from_db() == 0
-        self.last_article_time = self.db_interface.get_the_last_article_time()
+        # self.last_article_time = self.db_interface.get_the_last_article_time()
 
         self.find_main_menu_links()
 
@@ -82,7 +79,6 @@ class Scraper:
 
         with open("topic2articles.json", "w", encoding="utf-8") as f:
             f.write(json.dumps(self.topic2articles, indent=4))
-
 
 
     def find_main_menu_links(self):
@@ -130,36 +126,102 @@ class Scraper:
                 return
 
 
-    def loop_through_gathered_articles(self):
-        if not self.topic2articles:
-            print ("self.topic2articles is empty")
-            # TODO: log this
-            exit(1)
+    # def loop_through_gathered_articles(self):
+    #     if not self.topic2articles:
+    #         print ("self.topic2articles is empty")
+    #         # TODO: log this
+    #         exit(1)
+    #
+    #     for topic_name, articles in self.topic2articles.items():
+    #         if len(articles) == 0:
+    #             print (f"topic_name {topic_name} doesn't contain articles")
+    #             # todo: log this
+    #             continue
+    #
+    #         for i, url in enumerate(articles):
+    #             print (f"parsing articles: {i}/{len(articles)}")
+    #
+    #             headers = self.emulate_headers()
+    #             html_text = requests.get(url, headers=headers).text
+    #             html_text = html_text.replace(">", ">\n")
+    #
+    #             article_result = Parser.parse_article_page(html_text)
+    #             article_result.url = url
+    #             article_result.topic_name = topic_name
+    #
+    #             # assign topic id if it is existing topic:
+    #             if topic_name in self.existing_topic2topic_id:
+    #                 article_result.topic_id = \
+    #                     self.existing_topic2topic_id[topic_name]
+    #
+    #             with open(self.root_output_dir + f"/articles/{article_result.short()}.json", "w") as f:
+    #                 f.write(article_result.to_json_string())
 
-        for topic_name, articles in self.topic2articles.items():
-            if len(articles) == 0:
-                print (f"topic_name {topic_name} doesn't contain articles")
-                # todo: log this
+
+
+    def loop_through_articles(self, topics2articles):
+        last_article_datetime = self.db_interface.get_the_last_article_time()
+
+        # extract topics and select only active
+        db_active_topics = self.db_interface.get_topics_from_db()
+        db_active_topics = db_active_topics[db_active_topics["active"]]
+
+        # Looping through collected article urls and respective topic
+        # loaded from json file:
+        for topic, urls in topics2articles.items():
+            selection = db_active_topics[db_active_topics["topic"] == topic]
+            topic_id = -1
+            if selection.shape[0] > 0:
+                if selection.shape[0] > 1:
+                    # TODO: warning - multiple duplicating topics with the same name!
+                    # TODO: log this
+                    pass
+                topic_id = selection["topic_id"][0]
+            elif selection.shape[0] == 0:
+                # TODO: error - topic was not found
+                # TODO: log this
                 continue
 
-            for i, url in enumerate(articles):
-                print (f"parsing articles: {i}/{len(articles)}")
+            self.parse_articles(urls=urls,
+                                topic=topic,
+                                topic_id=topic_id,
+                                last_time=last_article_datetime)
 
-                headers = self.emulate_headers()
-                html_text = requests.get(url, headers=headers).text
-                html_text = html_text.replace(">", ">\n")
 
-                article_result = Parser.parse_article_page(html_text)
-                article_result.url = url
-                article_result.topic_name = topic_name
+    def parse_articles(self,
+                       urls: list,
+                       topic: str,
+                       topic_id: int,
+                       last_time: datetime.datetime):
+        """
+        TODO:
+        :param urls:
+        :param topic:
+        :param topic_id:
+        :param last_time:
+        :return:
+        """
+        for url in urls:
+            headers = self.emulate_headers()
+            html_text = requests.get(url, headers=headers).text
+            html_text = html_text.replace(">", ">\n")
 
-                # assign topic id if it is existing topic:
-                if topic_name in self.existing_topic2topic_id:
-                    article_result.topic_id = \
-                        self.existing_topic2topic_id[topic_name]
+            article_result = Parser.parse_article_page(html_text)
+            article_result.url = url
+            article_result.topic_id = topic_id
 
-                with open(self.root_output_dir + f"/articles/{article_result.short()}.json", "w") as f:
-                    f.write(article_result.to_json_string())
+            if last_time is not None:
+                art_time = datetime.datetime.strptime(article_result.time, "%Y-%m-%dT%H:%M:%S")
+                if art_time <= last_time:
+                    print (f"article time {art_time} <= last_time {last_time} - found old article,"
+                           f" stop looking further")
+                    # TODO: log this
+                    break
+
+            with open(self.root_output_dir +
+                      f"/articles/{article_result.short(prefix=topic + '-')}.json", "w") as f:
+                f.write(article_result.to_json_string())
+
 
 
     def find_new_articles_for_topic(self, topic_name):
@@ -211,7 +273,7 @@ class Scraper:
 
     def write_topics_update_file(self):
         # db_topics = MysqlDBInterface.local_test__get_exisiting_topics_from_db()
-        db_topics = self.db_interface.get_exisiting_topics_from_db()
+        db_topics = self.db_interface.get_topics_from_db()
         db_topic_names = [x.topic for x in db_topics]
         scraped_topics = list(self.main_menu_topic2url.keys())
 

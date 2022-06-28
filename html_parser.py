@@ -18,7 +18,6 @@ class ArticleResult:
         self.inner_links = []
         self.parsing_error = ""
         self.topic_id = 0
-        self.topic_name = ""
 
     def formatted_text(self):
         output = ""
@@ -39,12 +38,11 @@ class ArticleResult:
         out["dt"] = self.time
         out["tags"] = self.tags
         out["topic_id"] = self.topic_id
-        out["topic_name"] = self.topic_name
         out["parsing_error"] = self.parsing_error
         return json.dumps(out, indent=4)
 
 
-    def short(self):
+    def short(self, prefix=""):
         header = self.header.lower()
         header = re.sub('[^a-zA-Z ]+', '', header)
         words = header.split(" ")
@@ -53,6 +51,7 @@ class ArticleResult:
             out = '_'.join(words[:2])
         out = out + "_" + self.time
         out = out.replace(":", "")
+        out = prefix + out
         return out
 
 

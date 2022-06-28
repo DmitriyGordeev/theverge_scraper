@@ -2,6 +2,7 @@ import datetime
 from topics import Topic
 from configparser import ConfigParser
 import psycopg2
+import pandas
 
 
 class PostgreDBInterface:
@@ -39,20 +40,6 @@ class PostgreDBInterface:
             # connect to the PostgreSQL server
             print('Connecting to the PostgreSQL database...')
             self.conn = psycopg2.connect(**params)
-
-            # create a cursor
-            # cur = self.conn.cursor()
-
-            # # execute a statement
-            # print('PostgreSQL database version:')
-            # cur.execute('SELECT version()')
-            #
-            # # display the PostgreSQL database server version
-            # db_version = cur.fetchone()
-            # print(db_version)
-
-            # close the communication with the PostgreSQL
-            # cur.close()
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
             exit(1)     # TODO: should we exit?
@@ -62,16 +49,10 @@ class PostgreDBInterface:
                 print('Database connection closed.')
 
 
-    def get_exisiting_topics_from_db(self):
-        cursor = self.conn.cursor()
-        cursor.execute(f"SELECT * FROM topics WHERE news_source = '{self.news_source}'")
-        result = cursor.fetchall()
-        topics = []
-        for r in result:
-            topic = Topic()
-            if topic.from_query_result(r):
-                topics.append(topic)
-        return topics
+    def get_topics_from_db(self):
+        df = pandas.read_sql(f'SELECT * FROM topics WHERE news_source = \'{self.news_source}\'',
+                             con=self.conn)
+        return df
 
 
     def get_num_existing_articles_from_db(self):
