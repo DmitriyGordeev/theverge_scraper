@@ -1,29 +1,21 @@
-import os
-import re
-import unittest
+import json
+from pathlib import Path
+from time import sleep
 import requests
 from bs4 import BeautifulSoup
-import json
-from urllib.parse import urlparse
-from html_parser import Parser
 from selenium import webdriver
-from time import sleep
-from pathlib import Path
-from topics import *
+from html_parser import Parser
 from postgre_db_interface import *
-import datetime
 
 
 class Scraper:
     def __init__(self):
         self.root_domain = "https://theverge.com/"
         self.root_output_dir = "data"
-        self.main_menu_topic2hrefs = dict()
+        # self.main_menu_topic2hrefs = dict()
         self.main_menu_topic2url = dict()
         self.topic2articles = dict()       # this will store
                                             # (topic e.g. 'tech') -> (list of urls of all articles)
-
-        # TODO: 'look up to date' -  field
         option = webdriver.ChromeOptions()
         option.add_argument('headless')
         self.driver = webdriver.Chrome('drivers/chromedriver.exe', options=option)
@@ -45,6 +37,7 @@ class Scraper:
         """ Gets page using selenium, extracts rendered html code of this entire page
         and returns as a string """
         self.driver.get(url)
+        # TODO: how to define if url was rendered already ? Retries ? driver.ready () ?
         sleep(5)
         html = self.driver.execute_script("return document.getElementsByTagName('html')[0].innerHTML")
         return html
@@ -63,7 +56,7 @@ class Scraper:
         self.find_main_menu_links()
 
         # if we haven't found any, just stop and log it
-        if len(self.main_menu_topic2hrefs) == 0:
+        if len(self.main_menu_topic2url) == 0:
             print ("No menu links found")
             # TODO: logger
             exit(0)
@@ -72,39 +65,37 @@ class Scraper:
 
         if self.from_scratch_mode:
             # loop through all main menu links and scrape all articles
-            for topic in self.main_menu_topic2hrefs.keys():
-                print (f"SCRAPING topic = {topic}")
+            for topic in self.main_menu_topic2url.keys():
+                print (f"Scraping topic = {topic}")
                 self.find_new_articles_for_topic(topic)
-                self.full_loop_through_topic_pages(f"/{topic}/archives", topic)
+                self.loop_through_topic_pages(f"/{topic}/archives", topic)
 
-            # Loop through article urls in each topic:
-            self.loop_through_gathered_articles()
+            # # Loop through article urls in each topic:
+            # self.loop_through_gathered_articles()
 
         # if self.from_scratch_mode = False we search for new articles only
         # in this case we should have valid 'self.last_article_time'
         else:
-            for topic in self.main_menu_topic2hrefs.keys():
-                print (f"SCRAPING topic = {topic}")
+            for topic in self.main_menu_topic2url.keys():
+                print (f"Scraping topic = {topic}")
                 self.find_new_articles_for_topic(topic)
+
+        with open("topic2articles.json", "w", encoding="utf-8") as f:
+            f.write(json.dumps(self.topic2articles, indent=4))
+
 
 
     def find_main_menu_links(self):
         root = "https://theverge.com"
         html = requests.get(root, headers=self.emulate_headers()).text
-        self.main_menu_topic2hrefs, self.main_menu_topic2url = Parser.parse_main_menu_links(html)
+        self.main_menu_topic2url = Parser.parse_main_menu_links(html)
 
         # TODO: compare the database and check for new topics or prepare cache for switching old topics
         #  to inactive state when topics will be uploading to the database
 
 
-    def full_loop_through_topic_pages(self, topic_page1_url, topic_name):
-        # 1. получаем через selenium
-        # 2. парсим все ссылки с помощью .find_links_on_selected_menu
-        # 3. добавляем в дикт всех (tech -> конкретные ссылки)
-        # 4. ищем кнопку next
-        # 5. если найдена то берем след. страницу с selenium запускаем цикл
-        # f = open(f"{topic_name}_articles.log", "w")
-
+    def loop_through_topic_pages(self, topic_page1_url, topic_name):
+        """ Loops through pages for selected topic and get urls to concrete articles """
         next_button_exists = True
         target_page = topic_page1_url
         num_pages_looked_through_so_far = 0
@@ -133,7 +124,6 @@ class Scraper:
                 continue
 
             target_page = hrefs[0].get("href")
-
             num_pages_looked_through_so_far += 1
             if num_pages_looked_through_so_far >= self.max_pages_depth:
                 print ("Max depth reached. Stop")
@@ -174,52 +164,56 @@ class Scraper:
 
     def find_new_articles_for_topic(self, topic_name):
         headers = self.emulate_headers()
-        page_html = requests.get(self.root_domain + self.main_menu_topic2url[topic_name], headers=headers).text
+        page_html = requests.get(self.root_domain + self.main_menu_topic2url[topic_name],
+                                 headers=headers).text
         page_html = page_html.replace(">", ">\n")
 
         # parse all the refs to the concrete articles:
         article_links = Parser.find_links_on_selected_menu(page_html)
-        count = 0
-        for i, a_url in enumerate(article_links):
-            count += 1
-            print(f"parsing articles: {i}/{len(article_links)}")
-            headers = self.emulate_headers()
-            html_text = requests.get(a_url, headers=headers).text
-            html_text = html_text.replace(">", ">\n")
+        self.topic2articles[topic_name] = article_links
+        print (f"{topic_name}: gathered {len(article_links)} articles")
 
-            article_result = Parser.parse_article_page(html_text)
-            article_result.url = a_url
-            article_result.topic_name = topic_name
-            
-            # assign topic id if it is existing topic:
-            if topic_name in self.existing_topic2topic_id:
-                article_result.topic_id = \
-                    self.existing_topic2topic_id[topic_name]
-
-            if article_result.parsing_error != "":
-                continue
-
-            print (f"title = {article_result.header}, article_result.time = {article_result.time}")
-
-            current_article_datetime = datetime.datetime.strptime(article_result.time, "%Y-%m-%dT%H:%M:%S")
-
-            if self.last_article_time is not None:
-                # TODO: also we can retrieve urls for the past 5 days and find if current url is there
-                #   if so we stop as well
-                if current_article_datetime <= self.last_article_time:
-                    print ("Found old article, stop here")
-                    print (f"Num articles gathered = {count - 1}")
-                    return
-
-            with open(self.root_output_dir + f"/articles/{article_result.short()}.json", "w") as f:
-                f.write(article_result.to_json_string())
+        # count = 0
+        # for i, a_url in enumerate(article_links):
+        #     count += 1
+        #     print(f"parsing articles: {i}/{len(article_links)}")
+        #     headers = self.emulate_headers()
+        #     html_text = requests.get(a_url, headers=headers).text
+        #     html_text = html_text.replace(">", ">\n")
+        #
+        #     article_result = Parser.parse_article_page(html_text)
+        #     article_result.url = a_url
+        #     article_result.topic_name = topic_name
+        #
+        #     # assign topic id if it is existing topic:
+        #     if topic_name in self.existing_topic2topic_id:
+        #         article_result.topic_id = \
+        #             self.existing_topic2topic_id[topic_name]
+        #
+        #     if article_result.parsing_error != "":
+        #         continue
+        #
+        #     print (f"title = {article_result.header}, article_result.time = {article_result.time}")
+        #
+        #     current_article_datetime = datetime.datetime.strptime(article_result.time, "%Y-%m-%dT%H:%M:%S")
+        #
+        #     if self.last_article_time is not None:
+        #         # TODO: also we can retrieve urls for the past 5 days and find if current url is there
+        #         #   if so we stop as well
+        #         if current_article_datetime <= self.last_article_time:
+        #             print ("Found old article, stop here")
+        #             print (f"Num articles gathered = {count - 1}")
+        #             return
+        #
+        #     with open(self.root_output_dir + f"/articles/{article_result.short()}.json", "w") as f:
+        #         f.write(article_result.to_json_string())
 
 
     def write_topics_update_file(self):
         # db_topics = MysqlDBInterface.local_test__get_exisiting_topics_from_db()
         db_topics = self.db_interface.get_exisiting_topics_from_db()
         db_topic_names = [x.topic for x in db_topics]
-        scraped_topics = list(self.main_menu_topic2hrefs.keys())
+        scraped_topics = list(self.main_menu_topic2url.keys())
 
         for i in range(len(db_topics)):
             self.existing_topic2topic_id[db_topics[i].topic] = db_topics[i].topic_id

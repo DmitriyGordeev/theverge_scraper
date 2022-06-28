@@ -73,25 +73,17 @@ class Parser:
         # TODO: change assert to ..? !
         assert len(r) > 0
 
-        folder2submenu_urls = dict()
         folder2url  = dict()
-        active_folder = ""
         for li in r:
             folder = li.get("data-nav-item-id")
+            if folder is None:
+                continue
             a = li.select("a")
             folder_link = ""
             if len(a) > 0:
                 folder_link = a[0].get("href")
-
             folder2url[folder] = folder_link
-
-            if folder is not None:
-                active_folder = folder
-                folder2submenu_urls[active_folder] = []
-            else:
-                href = li.select("a")[0].get("href")
-                folder2submenu_urls[active_folder].append(href)
-        return folder2submenu_urls, folder2url
+        return folder2url
 
 
     @staticmethod
