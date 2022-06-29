@@ -37,7 +37,7 @@ class ArticleResult:
         out["content"] = self.main_text
         out["dt"] = self.time
         out["tags"] = self.tags
-        out["topic_id"] = self.topic_id
+        out["topic_id"] = int(self.topic_id)
         out["parsing_error"] = self.parsing_error
         return json.dumps(out, indent=4)
 

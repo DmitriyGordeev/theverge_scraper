@@ -30,7 +30,7 @@ class Scraper:
         self.existing_topic2topic_id = dict()
 
         self.from_scratch_mode = False
-        self.max_pages_depth = -1
+        self.max_pages_depth = 1
 
 
     def get_page_selenium(self, url: str) -> str:
@@ -64,9 +64,6 @@ class Scraper:
                 print (f"Scraping topic = {topic}")
                 self.find_new_articles_for_topic(topic)
                 self.loop_through_topic_pages(f"/{topic}/archives", topic)
-
-            # # Loop through article urls in each topic:
-            # self.loop_through_gathered_articles()
 
         # if self.from_scratch_mode = False we search for new articles only
         # in this case we should have valid 'self.last_article_time'
@@ -124,36 +121,7 @@ class Scraper:
                 return
 
 
-    # def loop_through_gathered_articles(self):
-    #     if not self.topic2articles:
-    #         print ("self.topic2articles is empty")
-    #         # TODO: log this
-    #         exit(1)
-    #
-    #     for topic_name, articles in self.topic2articles.items():
-    #         if len(articles) == 0:
-    #             print (f"topic_name {topic_name} doesn't contain articles")
-    #             # todo: log this
-    #             continue
-    #
-    #         for i, url in enumerate(articles):
-    #             print (f"parsing articles: {i}/{len(articles)}")
-    #
-    #             headers = self.emulate_headers()
-    #             html_text = requests.get(url, headers=headers).text
-    #             html_text = html_text.replace(">", ">\n")
-    #
-    #             article_result = Parser.parse_article_page(html_text)
-    #             article_result.url = url
-    #             article_result.topic_name = topic_name
-    #
-    #             # assign topic id if it is existing topic:
-    #             if topic_name in self.existing_topic2topic_id:
-    #                 article_result.topic_id = \
-    #                     self.existing_topic2topic_id[topic_name]
-    #
-    #             with open(self.root_output_dir + f"/articles/{article_result.short()}.json", "w") as f:
-    #                 f.write(article_result.to_json_string())
+
 
 
 
@@ -192,18 +160,20 @@ class Scraper:
                        topic_id: int,
                        last_time: datetime.datetime):
         """
-        TODO:
-        :param urls:
-        :param topic:
+        Loop through urls of articles for specified topic (and respective topic_id)
+        If article's time <= last_time stop. Writes down parsed articles into directory
+        :param urls: list of articles of the current topic
+        :param topic: current topic's name
         :param topic_id:
-        :param last_time:
-        :return:
+        :param last_time: datetime, last article's datetime in the database
         """
         for url in urls:
+            # get html with get request
             headers = self.emulate_headers()
             html_text = requests.get(url, headers=headers).text
             html_text = html_text.replace(">", ">\n")
 
+            # parse article -> ArticleResult object
             article_result = Parser.parse_article_page(html_text)
             article_result.url = url
             article_result.topic_id = topic_id
