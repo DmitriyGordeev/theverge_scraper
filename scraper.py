@@ -8,13 +8,13 @@ from html_parser import Parser
 from postgre_db_interface import *
 
 
+
 class Scraper:
     def __init__(self):
         self.root_domain = "https://theverge.com/"
         self.root_output_dir = "data"
-        # self.main_menu_topic2hrefs = dict()
         self.main_menu_topic2url = dict()
-        self.topic2articles = dict()       # this will store
+        self.topic2articles = dict()        # this will store
                                             # (topic e.g. 'tech') -> (list of urls of all articles)
         option = webdriver.ChromeOptions()
         option.add_argument('headless')
@@ -30,7 +30,7 @@ class Scraper:
         self.existing_topic2topic_id = dict()
 
         self.from_scratch_mode = False
-        self.max_pages_depth = 1
+        self.max_pages_depth = -1
 
 
     def get_page_selenium(self, url: str) -> str:
@@ -48,8 +48,6 @@ class Scraper:
         Path(self.root_output_dir + "/articles").mkdir(parents=True, exist_ok=True)
 
         self.from_scratch_mode = self.db_interface.get_num_existing_articles_from_db() == 0
-        # self.last_article_time = self.db_interface.get_the_last_article_time()
-
         self.find_main_menu_links()
 
         # if we haven't found any, just stop and log it
@@ -112,7 +110,7 @@ class Scraper:
             print (f"target_page = {target_page}, num articles gathered = {len(article_links)}")
 
             # looking for 'next' button:
-            soup = BeautifulSoup(page_html)
+            soup = BeautifulSoup(page_html, "html.parser")
             hrefs = soup.select("a.c-pagination__next.c-pagination__link.p-button")
             if len(hrefs) == 0:
                 print ("Next button was not found, break here")
@@ -121,7 +119,7 @@ class Scraper:
 
             target_page = hrefs[0].get("href")
             num_pages_looked_through_so_far += 1
-            if num_pages_looked_through_so_far >= self.max_pages_depth:
+            if num_pages_looked_through_so_far >= self.max_pages_depth > 0:
                 print ("Max depth reached. Stop")
                 return
 
@@ -235,56 +233,23 @@ class Scraper:
         self.topic2articles[topic_name] = article_links
         print (f"{topic_name}: gathered {len(article_links)} articles")
 
-        # count = 0
-        # for i, a_url in enumerate(article_links):
-        #     count += 1
-        #     print(f"parsing articles: {i}/{len(article_links)}")
-        #     headers = self.emulate_headers()
-        #     html_text = requests.get(a_url, headers=headers).text
-        #     html_text = html_text.replace(">", ">\n")
-        #
-        #     article_result = Parser.parse_article_page(html_text)
-        #     article_result.url = a_url
-        #     article_result.topic_name = topic_name
-        #
-        #     # assign topic id if it is existing topic:
-        #     if topic_name in self.existing_topic2topic_id:
-        #         article_result.topic_id = \
-        #             self.existing_topic2topic_id[topic_name]
-        #
-        #     if article_result.parsing_error != "":
-        #         continue
-        #
-        #     print (f"title = {article_result.header}, article_result.time = {article_result.time}")
-        #
-        #     current_article_datetime = datetime.datetime.strptime(article_result.time, "%Y-%m-%dT%H:%M:%S")
-        #
-        #     if self.last_article_time is not None:
-        #         # TODO: also we can retrieve urls for the past 5 days and find if current url is there
-        #         #   if so we stop as well
-        #         if current_article_datetime <= self.last_article_time:
-        #             print ("Found old article, stop here")
-        #             print (f"Num articles gathered = {count - 1}")
-        #             return
-        #
-        #     with open(self.root_output_dir + f"/articles/{article_result.short()}.json", "w") as f:
-        #         f.write(article_result.to_json_string())
-
 
     def write_topics_update_file(self):
-        # db_topics = MysqlDBInterface.local_test__get_exisiting_topics_from_db()
+        """
+        TODO:
+        :return:
+        """
         db_topics = self.db_interface.get_topics_from_db()
-        db_topic_names = [x.topic for x in db_topics]
         scraped_topics = list(self.main_menu_topic2url.keys())
 
-        for i in range(len(db_topics)):
-            self.existing_topic2topic_id[db_topics[i].topic] = db_topics[i].topic_id
-            if db_topics[i].topic not in scraped_topics:     # site doesn't have this topic now
-                db_topics[i].active = False
+        # find inactive topics and switch
+        for i in range(db_topics.shape[0]):
+            if db_topics.iloc[i, db_topics.columns.get_loc("topic")] not in scraped_topics:
+                db_topics.iloc[i, db_topics.columns.get_loc("active")] = False
 
         new_topics = []
         for st in scraped_topics:
-            if st not in db_topic_names:      # we found brand new topic, need to add
+            if st not in db_topics["topic"]:      # we found brand new topic, need to add
                 new_topics.append(st)
 
         # write into file json file for further work with database
@@ -308,9 +273,9 @@ class Scraper:
             out_json["new_topics"].append(topic.to_dict())
 
         # Saving topics that should be deactivated (inactive set to False)
-        for dbt in db_topics:
-            if not dbt.active:
-                out_json["inactive"].append(dbt.to_dict())
+        for idx, r in db_topics.iterrows():
+            if not r["active"]:
+                out_json["inactive"].append(dict(r))
 
         with open(self.root_output_dir + "/topics_update.json", "w") as f:
             f.write(json.dumps(out_json, indent=4))

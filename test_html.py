@@ -23,7 +23,7 @@ class TestIndex(unittest.TestCase):
         with open(f"test_html_pages/tech.html", "w") as f:
             f.write(html_text)
 
-        soup = BeautifulSoup(html_text)
+        soup = BeautifulSoup(html_text, "html.parser")
         pass
         # soup.select("section.c-two-up")[0].select(".c-entry-box-base__headline")[0].select("a")[0].get("href")
 
@@ -31,7 +31,7 @@ class TestIndex(unittest.TestCase):
     def test_main_menu_header_links(self):
         with open("test_html_pages/index.html", "r") as f:
             content = f.read()
-            # soup = BeautifulSoup(content)
+            # soup = BeautifulSoup(content, "html.parser")
             # header_section_search_result = soup.select('section.c-nav-list')
             # if len(header_section_search_result) == 0:
             #     raise ValueError("")
@@ -61,7 +61,7 @@ class TestIndex(unittest.TestCase):
     def test_find_folder_links(self):
         with open("test_html_pages/tech.html", "r") as f:
             content = f.read()
-            soup = BeautifulSoup(content)
+            soup = BeautifulSoup(content, "html.parser")
 
             # Next button:
             next_ref = soup.select("a.c-pagination__next.c-pagination__link.p-button")
@@ -73,7 +73,7 @@ class TestIndex(unittest.TestCase):
     def test_parse_article(self):
         with open("test_html_pages/article.html", "r") as f:
             content = f.read()
-            # soup = BeautifulSoup(content)
+            # soup = BeautifulSoup(content, "html.parser")
             # header_wrap = soup.select("article.l-main-content "
             #                           "div.c-entry-hero__header-wrap")
             #
@@ -110,7 +110,7 @@ class TestIndex(unittest.TestCase):
     def test_get_time(self):
         with open("article.html", "r") as f:
             content = f.read()
-            soup = BeautifulSoup(content)
+            soup = BeautifulSoup(content, "html.parser")
 
             times = soup.select("time")
             time = ""
@@ -121,7 +121,7 @@ class TestIndex(unittest.TestCase):
 
     def test_html_next_page(self):
         with open("tech_archives.html", "r") as f:
-            soup = BeautifulSoup(f.read())
+            soup = BeautifulSoup(f.read(), "html.parser")
             hrefs = soup.select("a.c-pagination__next.c-pagination__link.p-button")
             if len(hrefs) > 0:
                 next_page_link = hrefs[0].get("href")

@@ -61,7 +61,7 @@ class Parser:
     def parse_main_menu_links(html):
         """ Returns a dict with key(str)=FolderName ('tech', 'science', ..)
          and value(list)=[links] """
-        soup = BeautifulSoup(html)
+        soup = BeautifulSoup(html, "html.parser")
         header_section_search_result = soup.select('section.c-nav-list')
         if len(header_section_search_result) == 0:
             raise ValueError("")
@@ -88,7 +88,7 @@ class Parser:
     @staticmethod
     def find_links_on_selected_menu(html):
         """ Returns a list of links to concrete articles """
-        soup = BeautifulSoup(html)
+        soup = BeautifulSoup(html, "html.parser")
         links = []
 
         # find two 'Hero' links at the top
@@ -112,7 +112,7 @@ class Parser:
 
     @staticmethod
     def parse_article_page(html):
-        soup = BeautifulSoup(html)
+        soup = BeautifulSoup(html, "html.parser")
         header_wrap = soup.select("article.l-main-content "
                                   "div.c-entry-hero__header-wrap")
 
