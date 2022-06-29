@@ -10,8 +10,13 @@ if __name__ == "__main__":
     topics2articles = json.loads(f.read())
     f.close()
 
-    theVergeScraper = Scraper()
-    theVergeScraper.loop_through_articles(topics2articles)
+    scraper = Scraper()
+
+    Path(scraper.root_output_dir).mkdir(parents=True, exist_ok=True)
+    Path(scraper.root_output_dir + "/articles").mkdir(parents=True, exist_ok=True)
+    Path(scraper.root_output_dir + "/errors").mkdir(parents=True, exist_ok=True)
+
+    scraper.loop_through_articles(topics2articles)
 
 
 

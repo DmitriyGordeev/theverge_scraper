@@ -24,7 +24,6 @@ if __name__ == "__main__":
         except IOError as e:
             print (e)
 
-    data = data.drop("parsing_error", axis=1)
     times = data['dt']
     data['dt'] = pandas.to_datetime(times, utc=True)
     # data['dt'] = data['dt'].astype(pandas.Timestamp)

@@ -6,7 +6,8 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from html_parser import Parser
 from postgre_db_interface import *
-
+import pytz
+from dateutil.parser import parse
 
 
 class Scraper:
@@ -122,9 +123,6 @@ class Scraper:
 
 
 
-
-
-
     def loop_through_articles(self, topics2articles):
         last_article_datetime = self.db_interface.get_the_last_article_time()
 
@@ -180,16 +178,26 @@ class Scraper:
             article_result.topic_id = topic_id
 
             if last_time is not None:
-                art_time = datetime.datetime.strptime(article_result.time, "%Y-%m-%dT%H:%M:%S")
-                if art_time <= last_time:
-                    print (f"article time {art_time} <= last_time {last_time} - found old article,"
-                           f" stop looking further")
+                try:
+                    art_time = parse(article_result.time)
+                    art_time = art_time.replace(tzinfo=pytz.UTC)
+                    last_time = last_time.replace(tzinfo=pytz.UTC)
+                    if art_time <= last_time:
+                        print(f"article time {art_time} <= last_time {last_time} - found old article,"
+                              f" stop looking further")
+                        # TODO: log this
+                        break
+                except ValueError as e:
                     # TODO: log this
-                    break
+                    pass
 
-            with open(self.root_output_dir +
-                      f"/articles/{article_result.short(prefix=topic + '-')}.json", "w") as f:
-                f.write(article_result.to_json_string())
+            has_parsing_errors = len(article_result.parsing_error) > 0
+            write_location = self.root_output_dir + "/articles/"
+            if has_parsing_errors:
+                write_location = self.root_output_dir + "/errors/"
+            with open(write_location + f"/{article_result.short(prefix=topic + '-')}.json", "w") as f:
+                f.write(article_result.to_json_string(with_parsing_error=has_parsing_errors))
+
 
 
 

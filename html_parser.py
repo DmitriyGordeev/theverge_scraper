@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 import uuid
 
 
-class ArticleResult:
+class Article:
     def __init__(self):
         self.url = ""
         self.tags = []
@@ -32,7 +32,7 @@ class ArticleResult:
         return output
 
 
-    def to_json_string(self):
+    def to_json_string(self, with_parsing_error=True):
         out = dict()
         out["url"] = self.url
         out["title"] = self.header
@@ -40,7 +40,8 @@ class ArticleResult:
         out["dt"] = self.time
         out["tags"] = self.tags
         out["topic_id"] = int(self.topic_id)
-        out["parsing_error"] = self.parsing_error
+        if with_parsing_error:
+            out["parsing_error"] = self.parsing_error
         return json.dumps(out, indent=4)
 
 
@@ -60,7 +61,6 @@ class ArticleResult:
 
 
 class Parser:
-
     @staticmethod
     def parse_main_menu_links(html):
         """ Returns a dict with key(str)=FolderName ('tech', 'science', ..)
@@ -120,9 +120,9 @@ class Parser:
         header_wrap = soup.select("article.l-main-content "
                                   "div.c-entry-hero__header-wrap")
 
-        article = ArticleResult()
+        article = Article()
         if len(header_wrap) == 0:
-            article.parsing_error = "element {article.l-main-content div.c-entry-hero__header-wrap} was not found"
+            article.parsing_error.append("Parsing header-wrap error: element {article.l-main-content div.c-entry-hero__header-wrap} was not found")
             return article
 
         header = header_wrap[0].select("h1")
@@ -153,7 +153,6 @@ class Parser:
 
 
         times = soup.select("time")
-        time = ""
         if len(times) > 0:
             time = times[0].get("datetime")
             article.time = time
