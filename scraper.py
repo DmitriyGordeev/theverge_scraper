@@ -219,7 +219,7 @@ class Scraper:
 
         new_topics = []
         for st in scraped_topics:
-            if st not in db_topics["topic"]:      # we found brand new topic, need to add
+            if st not in list(db_topics["topic"]):      # we found brand new topic, need to add
                 new_topics.append(st)
 
         # write into file json file for further work with database
