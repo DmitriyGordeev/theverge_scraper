@@ -194,7 +194,7 @@ class Scraper:
             has_parsing_errors = len(article_result.parsing_error) > 0
             write_location = self.root_output_dir + "/articles/"
             if has_parsing_errors:
-                write_location = self.root_output_dir + "/errors/"
+                write_location = "errors/"
             with open(write_location + f"/{article_result.short(prefix=topic + '-')}.json", "w") as f:
                 f.write(article_result.to_json_string(with_parsing_error=has_parsing_errors))
 

@@ -14,7 +14,7 @@ if __name__ == "__main__":
 
     Path(scraper.root_output_dir).mkdir(parents=True, exist_ok=True)
     Path(scraper.root_output_dir + "/articles").mkdir(parents=True, exist_ok=True)
-    Path(scraper.root_output_dir + "/errors").mkdir(parents=True, exist_ok=True)
+    Path("errors/").mkdir(parents=True, exist_ok=True)
 
     scraper.loop_through_articles(topics2articles)
 
