@@ -28,6 +28,6 @@ if __name__ == "__main__":
 
         df["active"] = df["active"].astype(bool)
         df = df.drop("topic_id", axis=1)
-        df.to_sql('topics', connection, if_exists="append", index=False)
+        df.data('topics', connection, if_exists="append", index=False)
 
 

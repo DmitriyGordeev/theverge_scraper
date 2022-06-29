@@ -4,6 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 import json
 from urllib.parse import urlparse
+import uuid
 
 
 class ArticleResult:
@@ -16,8 +17,9 @@ class ArticleResult:
         self.time = ""
         self.main_text = ""
         self.inner_links = []
-        self.parsing_error = ""
+        self.parsing_error = []
         self.topic_id = 0
+
 
     def formatted_text(self):
         output = ""
@@ -43,6 +45,8 @@ class ArticleResult:
 
 
     def short(self, prefix=""):
+        if self.header == "":
+            return "error-" + uuid.uuid4().hex
         header = self.header.lower()
         header = re.sub('[^a-zA-Z ]+', '', header)
         words = header.split(" ")
@@ -116,48 +120,65 @@ class Parser:
         header_wrap = soup.select("article.l-main-content "
                                   "div.c-entry-hero__header-wrap")
 
-        # if len(header_wrap) == 0:
-        #     raise RuntimeError("no item found")
-
         article = ArticleResult()
         if len(header_wrap) == 0:
             article.parsing_error = "element {article.l-main-content div.c-entry-hero__header-wrap} was not found"
             return article
 
-        header_text = header_wrap[0].select("h1")[0].text
-        # TODO:
-        summary_text = soup.select("article.l-main-content p.c-entry-summary")[0].text
-        authors_and_time = soup.select("article.l-main-content div.c-byline")[0].text
-        authors_and_time = authors_and_time.replace("\n", "")
-        authors_and_time = re.sub("\s{2,}", " ", authors_and_time).strip()
+        header = header_wrap[0].select("h1")
+        if len(header) > 0:
+            header_text = header[0].text
+            article.header = header_text
+        else:
+            article.parsing_error.append("Parsing header error: 'header_wrap[0].select(\"h1\")' is empty")
+
+        summary = soup.select("article.l-main-content p.c-entry-summary")
+        if len(summary) > 0:
+            summary_text = summary[0].text
+            article.summary = summary_text
+        else:
+            article.parsing_error.append("Parsing summary error: "
+                                         "'soup.select('article.l-main-content p.c-entry-summary')' is empty")
+
+
+        byline = soup.select("article.l-main-content div.c-byline")
+        if len(byline) > 0:
+            authors_and_time = byline[0].text
+            authors_and_time = authors_and_time.replace("\n", "")
+            authors_and_time = re.sub("\s{2,}", " ", authors_and_time).strip()
+            article.byline = authors_and_time
+        else:
+            article.parsing_error.append("Parsing byline error: "
+                                         "soup.select(\"article.l-main-content div.c-byline\") is empty")
+
 
         times = soup.select("time")
         time = ""
         if len(times) > 0:
             time = times[0].get("datetime")
+            article.time = time
+        else:
+            article.parsing_error.append("Parsing byline error: "
+                                         "soup.select(\"time\") is empty")
 
         # parsing tags:
         tags = soup.select("div.c-entry-group-labels "
                             "li.c-entry-group-labels__item "
                             "span")
         tags = [x.text.replace("\n", "") for x in tags]
+        article.tags = tags
 
         # article's content - select all p and h2 where the main text resides
         entry_content = soup.select("div.c-entry-content")
-        main_text_tags = entry_content[0].select("h2, p[id]")
-        main_text = ""
-        for t in main_text_tags:
-            main_text += t.text
+        if len(entry_content) > 0:
+            main_text_tags = entry_content[0].select("h2, p[id]")
+            main_text = ""
+            for t in main_text_tags:
+                main_text += t.text
+            article.main_text = main_text
 
         # References inside the article:
         refs = entry_content[0].select("a")
-
-        article.tags = tags
-        article.header = header_text
-        article.summary = summary_text
-        article.time = time
-        article.byline = authors_and_time
-        article.main_text = main_text
         article.inner_links = refs
         return article
 

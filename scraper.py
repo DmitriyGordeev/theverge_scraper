@@ -142,7 +142,7 @@ class Scraper:
                     # TODO: warning - multiple duplicating topics with the same name!
                     # TODO: log this
                     pass
-                topic_id = selection["topic_id"][0]
+                topic_id = list(selection["topic_id"])[0]
             elif selection.shape[0] == 0:
                 # TODO: error - topic was not found
                 # TODO: log this
@@ -167,7 +167,8 @@ class Scraper:
         :param topic_id:
         :param last_time: datetime, last article's datetime in the database
         """
-        for url in urls:
+        for idx, url in enumerate(urls):
+            print (f"progress {idx}/{len(urls)}")
             # get html with get request
             headers = self.emulate_headers()
             html_text = requests.get(url, headers=headers).text
