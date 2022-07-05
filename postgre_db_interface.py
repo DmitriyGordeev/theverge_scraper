@@ -2,6 +2,7 @@ import datetime
 from topics import Topic
 from configparser import ConfigParser
 import psycopg2
+from sqlalchemy import create_engine
 import pandas
 
 
@@ -50,6 +51,8 @@ class PostgreDBInterface:
 
 
     def get_topics_from_db(self):
+        # TODO: connection via sqlalchemy
+        connection = create_engine('postgresql://postgres:1234@localhost:5432/news')
         df = pandas.read_sql(f'SELECT * FROM topics WHERE news_source = \'{self.news_source}\'',
                              con=self.conn)
         return df
@@ -69,9 +72,6 @@ class PostgreDBInterface:
         """ Extracts datetime of the last article from DB as a string and
             converts into python's datetime object
          """
-        # select *
-        # from news LImit
-        # 1
         cursor = self.conn.cursor()
         cursor.execute(f"SELECT * FROM news WHERE url LIKE '%{self.news_source}%'")
         result = cursor.fetchall()

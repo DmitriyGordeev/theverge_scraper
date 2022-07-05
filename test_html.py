@@ -11,7 +11,7 @@ import datetime
 class TestIndex(unittest.TestCase):
 
     def test_index_html(self):
-        url = "https://www.theverge.com/good-deals/2022/6/29/23186904/samsung-980-pro-m2-ssd-ps5-google-nest-mini-chromecast-android-pixel-6-pro-deal-sale"
+        url = "https://www.theverge.com/"
 
         HEADERS = ({'User-Agent':
                         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 \
@@ -20,12 +20,10 @@ class TestIndex(unittest.TestCase):
 
         html_text = requests.get(url, headers=HEADERS).text
         html_text = html_text.replace(">", ">\n")
-        with open(f"test_html_pages/article.html", "w") as f:
+        with open(f"test_html_pages/index.html", "w") as f:
             f.write(html_text)
-
         soup = BeautifulSoup(html_text, "html.parser")
         pass
-        # soup.select("section.c-two-up")[0].select(".c-entry-box-base__headline")[0].select("a")[0].get("href")
 
 
     def test_main_menu_header_links(self):

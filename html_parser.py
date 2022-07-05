@@ -63,8 +63,7 @@ class Article:
 class Parser:
     @staticmethod
     def parse_main_menu_links(html):
-        """ Returns a dict with key(str)=FolderName ('tech', 'science', ..)
-         and value(list)=[links] """
+        """ Returns a dict: key=topic, value=url """
         soup = BeautifulSoup(html, "html.parser")
         header_section_search_result = soup.select('section.c-nav-list')
         if len(header_section_search_result) == 0:

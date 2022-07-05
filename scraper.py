@@ -82,9 +82,6 @@ class Scraper:
         html = requests.get(root, headers=self.emulate_headers()).text
         self.main_menu_topic2url = Parser.parse_main_menu_links(html)
 
-        # TODO: compare the database and check for new topics or prepare cache for switching old topics
-        #  to inactive state when topics will be uploading to the database
-
 
     def loop_through_topic_pages(self, topic_page1_url, topic_name):
         """ Loops through pages for selected topic and get urls to concrete articles """
