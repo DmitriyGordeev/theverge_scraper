@@ -151,6 +151,8 @@ class Scraper:
                 # TODO: log this
                 continue
 
+            # todo: remove elements in 'urls' that lead to a different domain
+
             self.parse_articles(urls=urls,
                                 topic=topic,
                                 topic_id=topic_id,
@@ -179,6 +181,8 @@ class Scraper:
 
             # parse article -> ArticleResult object
             article_result = Parser.parse_article_page(html_text)
+            article_result.url = url
+            article_result.topic_id = topic_id
 
             # check if article object has parsing errors
             # if so, we write it to errors/ directory and continue
@@ -188,9 +192,6 @@ class Scraper:
                 with open(f"errors/{article_result.short(prefix=topic + '-')}.json", "w") as f:
                     f.write(article_result.to_json_string())
                 continue
-
-            article_result.url = url
-            article_result.topic_id = topic_id
 
             # Compare article's time with last_time from DB
             if last_time is not None and article_result.time is not None:

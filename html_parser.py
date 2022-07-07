@@ -46,7 +46,7 @@ class Article:
 
 
     def short(self, prefix=""):
-        if self.header == "":
+        if len(self.parsing_error) > 0:
             return "error-" + uuid.uuid4().hex
         header = self.header.lower()
         header = re.sub('[^a-zA-Z ]+', '', header)
