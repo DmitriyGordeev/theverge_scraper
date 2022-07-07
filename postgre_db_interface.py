@@ -7,10 +7,12 @@ import pandas
 
 
 class PostgreDBInterface:
-    def __init__(self):
-        self.conn = None
-        self.news_source = 'theverge'
-        self.connect()
+    def __init__(self, root_domain):
+        self.news_source_domain = root_domain
+        config = self.config()
+        # connection example: postgresql://user:password@localhost:5432/database
+        connection_argument = f'postgresql://{config["user"]}:{config["password"]}@{config["host"]}:5432/{config["database"]}'
+        self.db_engine = create_engine(connection_argument)
 
 
     @staticmethod
@@ -31,54 +33,33 @@ class PostgreDBInterface:
         return db
 
 
-    def connect(self):
-        """ Connect to the PostgreSQL database server """
-        conn = None
-        try:
-            # read connection parameters
-            params = PostgreDBInterface.config()
-
-            # connect to the PostgreSQL server
-            print('Connecting to the PostgreSQL database...')
-            self.conn = psycopg2.connect(**params)
-        except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
-            exit(1)     # TODO: should we exit?
-        finally:
-            if conn is not None:
-                self.conn.close()
-                print('Database connection closed.')
-
-
     def get_topics_from_db(self):
-        # TODO: connection via sqlalchemy
-        connection = create_engine('postgresql://postgres:1234@localhost:5432/news')
-        df = pandas.read_sql(f'SELECT * FROM topics WHERE news_source = \'{self.news_source}\'',
-                             con=self.conn)
-        return df
+        with self.db_engine.connect() as connection:
+            # TODO: log sql request
+            df = pandas.read_sql(f'SELECT * FROM topics WHERE news_source = \'{self.news_source_domain}\'',
+                                 con=connection)
+            return df
 
 
     def get_num_existing_articles_from_db(self):
         """ Does SELECT request in order to find how many articles
         of this source are already in the database.
         """
-        cursor = self.conn.cursor()
-        cursor.execute(f"SELECT * FROM news WHERE url LIKE '%{self.news_source}%'")
-        result = cursor.fetchall()
-        return len(result)
+        with self.db_engine.connect() as connection:
+            df = pandas.read_sql(f'SELECT news_id FROM news WHERE url LIKE \'%%{self.news_source_domain}%%\'', con=connection)
+            return df.shape[0]
 
 
-    def get_the_last_article_time(self):
+    def get_last_article_time(self):
         """ Extracts datetime of the last article from DB as a string and
             converts into python's datetime object
          """
-        cursor = self.conn.cursor()
-        cursor.execute(f"SELECT * FROM news WHERE url LIKE '%{self.news_source}%'")
-        result = cursor.fetchall()
-        if len(result) > 0:
-            if len(result[0]) > 4:
-                return result[0][3]
-        return None
+        with self.db_engine.connect() as connection:
+            df = pandas.read_sql(f'SELECT dt FROM news WHERE url LIKE \'%%{self.news_source_domain}%%\'', con=connection)
+            df = df.sort_values(by="dt")
+            if df.shape[0] == 0:
+                return None
+            return df.iloc[-1][0]
 
 
     @staticmethod

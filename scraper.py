@@ -12,7 +12,8 @@ from dateutil.parser import parse
 
 class Scraper:
     def __init__(self):
-        self.root_domain = "https://theverge.com/"
+        self.source_domain = "theverge.com"
+        self.root_url = "https://" + self.source_domain
         self.root_output_dir = "data"
         self.main_menu_topic2url = dict()
         self.topic2articles = dict()        # this will store
@@ -20,7 +21,7 @@ class Scraper:
         option = webdriver.ChromeOptions()
         option.add_argument('headless')
         self.driver = webdriver.Chrome('drivers/chromedriver.exe', options=option)
-        self.db_interface = PostgreDBInterface()
+        self.db_interface = PostgreDBInterface(self.source_domain)
 
         # These are to be set after looking into Database with SELECT request: (?)
         # self.last_article_time = datetime.datetime.today()
@@ -78,9 +79,15 @@ class Scraper:
 
 
     def find_main_menu_links(self):
-        root = "https://theverge.com"
-        html = requests.get(root, headers=self.emulate_headers()).text
+        html = requests.get(self.root_url, headers=self.emulate_headers()).text
         self.main_menu_topic2url = Parser.parse_main_menu_links(html)
+
+        # remove links to other domains:
+        copy_dict = dict()
+        for topic, url in self.main_menu_topic2url.items():
+            if "https://" not in url:
+                copy_dict[topic] = url
+        self.main_menu_topic2url = copy_dict
 
 
     def loop_through_topic_pages(self, topic_page1_url, topic_name):
@@ -89,7 +96,7 @@ class Scraper:
         target_page = topic_page1_url
         num_pages_looked_through_so_far = 0
         while next_button_exists:
-            page_html = self.get_page_selenium(self.root_domain + target_page)
+            page_html = self.get_page_selenium(self.root_url + target_page)
             if page_html == "":
                 print ("page_html is empty")
                 # TODO: log this case
@@ -121,7 +128,8 @@ class Scraper:
 
 
     def loop_through_articles(self, topics2articles):
-        last_article_datetime = self.db_interface.get_the_last_article_time()
+        last_article_datetime = self.db_interface.get_last_article_time()
+        print ("[debug], last_article_time (DB) =", last_article_datetime)
 
         # extract topics and select only active
         db_active_topics = self.db_interface.get_topics_from_db()
@@ -171,10 +179,21 @@ class Scraper:
 
             # parse article -> ArticleResult object
             article_result = Parser.parse_article_page(html_text)
+
+            # check if article object has parsing errors
+            # if so, we write it to errors/ directory and continue
+            if len(article_result.parsing_error) > 0:
+                # TODO: log this
+                print ("Parsing Errors!")
+                with open(f"errors/{article_result.short(prefix=topic + '-')}.json", "w") as f:
+                    f.write(article_result.to_json_string())
+                continue
+
             article_result.url = url
             article_result.topic_id = topic_id
 
-            if last_time is not None:
+            # Compare article's time with last_time from DB
+            if last_time is not None and article_result.time is not None:
                 try:
                     art_time = parse(article_result.time)
                     art_time = art_time.replace(tzinfo=pytz.UTC)
@@ -188,19 +207,14 @@ class Scraper:
                     # TODO: log this
                     pass
 
-            has_parsing_errors = len(article_result.parsing_error) > 0
-            write_location = self.root_output_dir + "/articles/"
-            if has_parsing_errors:
-                write_location = "errors/"
-            with open(write_location + f"/{article_result.short(prefix=topic + '-')}.json", "w") as f:
-                f.write(article_result.to_json_string(with_parsing_error=has_parsing_errors))
-
+            with open(self.root_output_dir + f"/articles/{article_result.short(prefix=topic + '-')}.json", "w") as f:
+                f.write(article_result.to_json_string())
 
 
 
     def find_new_articles_for_topic(self, topic_name):
         headers = self.emulate_headers()
-        page_html = requests.get(self.root_domain + self.main_menu_topic2url[topic_name],
+        page_html = requests.get(self.root_url + self.main_menu_topic2url[topic_name],
                                  headers=headers).text
         page_html = page_html.replace(">", ">\n")
 
@@ -241,11 +255,11 @@ class Scraper:
             topic.topic = nt
             url = self.main_menu_topic2url[nt]
             if url[0] == '/':
-                topic.url = self.root_domain + url
+                topic.url = self.root_url + url
             else:
                 topic.url = url
             topic.active = True
-            topic.news_source = "theverge"
+            topic.news_source = self.source_domain
             out_json["new_topics"].append(topic.to_dict())
 
         # Saving topics that should be deactivated (inactive set to False)

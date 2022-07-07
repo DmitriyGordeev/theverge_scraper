@@ -32,7 +32,7 @@ class Article:
         return output
 
 
-    def to_json_string(self, with_parsing_error=True):
+    def to_json_string(self):
         out = dict()
         out["url"] = self.url
         out["title"] = self.header
@@ -40,7 +40,7 @@ class Article:
         out["dt"] = self.time
         out["tags"] = self.tags
         out["topic_id"] = int(self.topic_id)
-        if with_parsing_error:
+        if len(self.parsing_error) > 0:
             out["parsing_error"] = self.parsing_error
         return json.dumps(out, indent=4)
 
