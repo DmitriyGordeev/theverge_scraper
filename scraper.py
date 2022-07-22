@@ -21,7 +21,7 @@ class Scraper:
                                             # (topic e.g. 'tech') -> (list of urls of all articles)
         option = webdriver.ChromeOptions()
         option.add_argument('headless')
-        self.driver = webdriver.Chrome(Settings.global_path + 'drivers/chromedriver.exe', options=option)
+        self.driver = webdriver.Chrome(Settings.global_path + 'drivers/chromedriver', options=option)
         self.db_interface = PostgreDBInterface(self.source_domain)
 
         # These are to be set after looking into Database with SELECT request: (?)
