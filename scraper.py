@@ -8,19 +8,20 @@ from html_parser import Parser
 from postgre_db_interface import *
 import pytz
 from dateutil.parser import parse
+from settings import Settings
 
 
 class Scraper:
     def __init__(self):
         self.source_domain = "theverge.com"
         self.root_url = "https://" + self.source_domain
-        self.root_output_dir = "data"
+        self.root_output_dir = Settings.global_path + "data"
         self.main_menu_topic2url = dict()
         self.topic2articles = dict()        # this will store
                                             # (topic e.g. 'tech') -> (list of urls of all articles)
         option = webdriver.ChromeOptions()
         option.add_argument('headless')
-        self.driver = webdriver.Chrome('drivers/chromedriver.exe', options=option)
+        self.driver = webdriver.Chrome(Settings.global_path + 'drivers/chromedriver.exe', options=option)
         self.db_interface = PostgreDBInterface(self.source_domain)
 
         # These are to be set after looking into Database with SELECT request: (?)
@@ -74,7 +75,7 @@ class Scraper:
                 print (f"Scraping topic = {topic}")
                 self.find_new_articles_for_topic(topic)
 
-        with open("topic2articles.json", "w", encoding="utf-8") as f:
+        with open(Settings.global_path + "topic2articles.json", "w", encoding="utf-8") as f:
             f.write(json.dumps(self.topic2articles, indent=4))
 
 
@@ -189,7 +190,7 @@ class Scraper:
             if len(article_result.parsing_error) > 0:
                 # TODO: log this
                 print ("Parsing Errors!")
-                with open(f"errors/{article_result.short(prefix=topic + '-')}.json", "w") as f:
+                with open(f"{Settings.global_path}/errors/{article_result.short(prefix=topic + '-')}.json", "w") as f:
                     f.write(article_result.to_json_string())
                 continue
 

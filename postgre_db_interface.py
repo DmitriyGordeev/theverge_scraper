@@ -4,6 +4,7 @@ from configparser import ConfigParser
 import psycopg2
 from sqlalchemy import create_engine
 import pandas
+from settings import Settings
 
 
 class PostgreDBInterface:
@@ -16,7 +17,7 @@ class PostgreDBInterface:
 
 
     @staticmethod
-    def config(filename='postgre_config.ini', section='postgresql'):
+    def config(filename=Settings.global_path + 'postgre_config.ini', section='postgresql'):
         # create a parser
         parser = ConfigParser()
         # read config file

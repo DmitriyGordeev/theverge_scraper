@@ -3,6 +3,7 @@ import psycopg2
 import json
 from postgre_db_interface import *
 from sqlalchemy import create_engine
+from settings import Settings
 
 """ Simple script to test intermediate insertion of scraped topics """
 
@@ -13,7 +14,7 @@ if __name__ == "__main__":
     # connection = psycopg2.connect(**params)
     connection = create_engine('postgresql://postgres:1234@localhost:5432/news')
 
-    with open("data/topics_update.json", "r") as f:
+    with open(Settings.global_path + "data/topics_update.json", "r") as f:
         topics_update = json.loads(f.read())
 
     new_topics = topics_update["new_topics"]

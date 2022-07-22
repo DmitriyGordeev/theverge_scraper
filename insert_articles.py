@@ -3,7 +3,7 @@ import json
 from postgre_db_interface import *
 from sqlalchemy import create_engine
 import glob
-
+from settings import Settings
 
 if __name__ == "__main__":
 
@@ -11,7 +11,7 @@ if __name__ == "__main__":
     params = PostgreDBInterface.config()
     connection = create_engine('postgresql://postgres:1234@localhost:5432/news')
 
-    files = glob.glob("data/articles/*.json")
+    files = glob.glob(Settings.global_path + "data/articles/*.json")
     data = pandas.DataFrame()
     for i,f in enumerate(files):
         print (f"{i} / {len(files)}")
