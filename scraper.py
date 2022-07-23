@@ -15,7 +15,7 @@ class Scraper:
     def __init__(self):
         self.source_domain = "theverge.com"
         self.root_url = "https://" + self.source_domain
-        self.root_output_dir = Settings.global_path + "data"
+        self.root_output_dir = Settings.global_path + "data/"
         self.main_menu_topic2url = dict()
         self.topic2articles = dict()        # this will store
                                             # (topic e.g. 'tech') -> (list of urls of all articles)
@@ -134,6 +134,9 @@ class Scraper:
 
         # extract topics and select only active
         db_active_topics = self.db_interface.get_topics_from_db()
+
+        print ("======\n", db_active_topics, "\n======\n")
+
         db_active_topics = db_active_topics[db_active_topics["active"]]
 
         # Looping through collected article urls and respective topic
