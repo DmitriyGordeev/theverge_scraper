@@ -6,4 +6,6 @@ __pycache__/
 *.json
 content.txt
 data/
+errors/
+test_html_pages/
 !scrape_topics__diagram.html

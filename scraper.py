@@ -33,7 +33,7 @@ class Scraper:
         self.existing_topic2topic_id = dict()
 
         self.from_scratch_mode = False
-        self.max_pages_depth = 1
+        self.max_pages_depth = 2
 
 
     def get_page_selenium(self, url: str) -> str:
