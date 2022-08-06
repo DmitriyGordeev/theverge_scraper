@@ -9,6 +9,7 @@ from postgre_db_interface import *
 import pytz
 from dateutil.parser import parse
 from settings import Settings
+import logging
 
 
 class Scraper:
@@ -31,9 +32,14 @@ class Scraper:
         # this is a dict key = 'topic name', value is topic_id
         # contains a map of topics that exist in DB already
         self.existing_topic2topic_id = dict()
-
         self.from_scratch_mode = False
         self.max_pages_depth = 2
+
+        logging.info(f"source_domain = {self.source_domain}")
+        logging.info(f"root_url = {self.root_url}")
+        logging.info(f"root_output_dir = {self.root_output_dir}")
+        logging.info(f"max_pages_depth")
+
 
 
     def get_page_selenium(self, url: str) -> str:
@@ -51,12 +57,13 @@ class Scraper:
         Path(self.root_output_dir + "/articles").mkdir(parents=True, exist_ok=True)
 
         self.from_scratch_mode = self.db_interface.get_num_existing_articles_from_db() == 0
+        logging.info(f"self.from_scratch_mode = {self.from_scratch_mode}")
+
         self.find_main_menu_links()
 
         # if we haven't found any, just stop and log it
         if len(self.main_menu_topic2url) == 0:
-            print ("No menu links found")
-            # TODO: logger
+            logging.warning("No menu links found")
             exit(0)
 
         self.write_topics_update_file()
@@ -64,7 +71,7 @@ class Scraper:
         if self.from_scratch_mode:
             # loop through all main menu links and scrape all articles
             for topic in self.main_menu_topic2url.keys():
-                print (f"Scraping topic = {topic}")
+                logging.info(f"topic = {topic}")
                 self.find_new_articles_for_topic(topic)
                 self.loop_through_topic_pages(f"/{topic}/archives", topic)
 
@@ -72,7 +79,7 @@ class Scraper:
         # in this case we should have valid 'self.last_article_time'
         else:
             for topic in self.main_menu_topic2url.keys():
-                print (f"Scraping topic = {topic}")
+                logging.info(f"topic = {topic}")
                 self.find_new_articles_for_topic(topic)
 
         with open(Settings.global_path + "topic2articles.json", "w", encoding="utf-8") as f:
@@ -99,8 +106,7 @@ class Scraper:
         while next_button_exists:
             page_html = self.get_page_selenium(self.root_url + target_page)
             if page_html == "":
-                print ("page_html is empty")
-                # TODO: log this case
+                logging.warning("page_html is empty")
                 exit(1)
 
             # parse all the refs to the concrete articles:
