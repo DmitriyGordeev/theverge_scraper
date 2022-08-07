@@ -17,7 +17,7 @@ class PostgreDBInterface:
 
 
     @staticmethod
-    def config(filename=Settings.global_path + 'postgre_config.ini', section='postgresql'):
+    def config(filename=Settings.global_path + '/postgre_config.ini', section='postgresql'):
         # create a parser
         parser = ConfigParser()
         # read config file
