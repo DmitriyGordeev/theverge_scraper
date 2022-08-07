@@ -38,7 +38,7 @@ class Scraper:
         logging.info(f"source_domain = {self.source_domain}")
         logging.info(f"root_url = {self.root_url}")
         logging.info(f"root_output_dir = {self.root_output_dir}")
-        logging.info(f"max_pages_depth")
+        logging.info(f"max_pages_depth = {self.max_pages_depth}")
 
 
 
@@ -116,32 +116,33 @@ class Scraper:
             else:
                 self.topic2articles[topic_name] = article_links
 
-            print (f"target_page = {target_page}, num articles gathered = {len(article_links)}")
+            logging.info(f"target_page = {target_page}, num articles gathered = {len(article_links)}")
 
             # looking for 'next' button:
             soup = BeautifulSoup(page_html, "html.parser")
             hrefs = soup.select("a.c-pagination__next.c-pagination__link.p-button")
             if len(hrefs) == 0:
-                print ("Next button was not found, break here")
+                logging.info("Next button was not found, break here")
                 next_button_exists = False
                 continue
 
+            # stop if we reached maximum depth
             target_page = hrefs[0].get("href")
             num_pages_looked_through_so_far += 1
             if num_pages_looked_through_so_far >= self.max_pages_depth > 0:
-                print ("Max depth reached. Stop")
+                logging.info("Max depth reached. Stop")
                 return
 
 
 
     def loop_through_articles(self, topics2articles):
         last_article_datetime = self.db_interface.get_last_article_time()
-        print ("[debug], last_article_time (DB) =", last_article_datetime)
+        logging.debug("Time of the latest article in the database = {last_article_datetime}")
 
         # extract topics and select only active
         db_active_topics = self.db_interface.get_topics_from_db()
 
-        print ("======\n", db_active_topics, "\n======\n")
+        logging.debug("======\n", db_active_topics, "\n======\n")
 
         db_active_topics = db_active_topics[db_active_topics["active"]]
 
@@ -152,16 +153,12 @@ class Scraper:
             topic_id = -1
             if selection.shape[0] > 0:
                 if selection.shape[0] > 1:
-                    # TODO: warning - multiple duplicating topics with the same name!
-                    # TODO: log this
-                    pass
+                    logging.warning(f"Found duplicating topics in the database with name '{topic}'")
+
                 topic_id = list(selection["topic_id"])[0]
             elif selection.shape[0] == 0:
-                # TODO: error - topic was not found
-                # TODO: log this
+                logging.error(f"topic '{topic}' was not found in the database, skipping article collection for this topic")
                 continue
-
-            # todo: remove elements in 'urls' that lead to a different domain
 
             self.parse_articles(urls=urls,
                                 topic=topic,
@@ -183,7 +180,7 @@ class Scraper:
         :param last_time: datetime, last article's datetime in the database
         """
         for idx, url in enumerate(urls):
-            print (f"progress {idx}/{len(urls)}")
+            logging.info(f"progress {idx}/{len(urls)}")
             # get html with get request
             headers = self.emulate_headers()
             html_text = requests.get(url, headers=headers).text
@@ -197,8 +194,7 @@ class Scraper:
             # check if article object has parsing errors
             # if so, we write it to errors/ directory and continue
             if len(article_result.parsing_error) > 0:
-                # TODO: log this
-                print ("Parsing Errors!")
+                logging.error(f"parsing error")
                 with open(f"{Settings.global_path}/errors/{article_result.short(prefix=topic + '-')}.json", "w") as f:
                     f.write(article_result.to_json_string())
                 continue
@@ -210,13 +206,11 @@ class Scraper:
                     art_time = art_time.replace(tzinfo=pytz.UTC)
                     last_time = last_time.replace(tzinfo=pytz.UTC)
                     if art_time <= last_time:
-                        print(f"article time {art_time} <= last_time {last_time} - found old article,"
-                              f" stop looking further")
-                        # TODO: log this
+                        logging.error(f"article time {art_time} <= last_time {last_time} - found old article,"
+                                      f"stop looking further")
                         break
                 except ValueError as e:
-                    # TODO: log this
-                    pass
+                    logging.error(f"error while parsing {article_result.time}")
 
             with open(self.root_output_dir + f"/articles/{article_result.short(prefix=topic + '-')}.json", "w") as f:
                 f.write(article_result.to_json_string())
@@ -232,7 +226,7 @@ class Scraper:
         # parse all the refs to the concrete articles:
         article_links = Parser.find_links_on_selected_menu(page_html)
         self.topic2articles[topic_name] = article_links
-        print (f"{topic_name}: gathered {len(article_links)} articles")
+        logging.info(f"{topic_name}: gathered {len(article_links)} articles")
 
 
     def write_topics_update_file(self):
