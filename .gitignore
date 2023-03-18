@@ -4,8 +4,9 @@ drivers/
 *.log
 __pycache__/
 *.json
-content.txt
+*.txt
 data/
 errors/
 test_html_pages/
 !scrape_topics__diagram.html
+*.ini
