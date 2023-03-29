@@ -1,4 +1,5 @@
-Place chromedriver.exe under drivers/ directory
-Launch the script via __main__.py
+# Web scraper
+Downloads and parses pages from theverge.com
+Outputs parsed articles as json files
 
-TODO: add support for other web-drivers ?
+TODO: make it async
